@@ -1,0 +1,86 @@
+{
+  "name": "pi-fusion",
+  "version": "0.1.0",
+  "description": "Pi extension for subagents plus Fusion multi-model answer synthesis",
+  "author": "Jay Tel + pi-subagents contributors",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaytel/pi-fusion.git"
+  },
+  "homepage": "https://github.com/jaytel/pi-fusion#readme",
+  "bugs": {
+    "url": "https://github.com/jaytel/pi-fusion/issues"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-coding-agent",
+    "subagents",
+    "fusion",
+    "multi-model",
+    "ai",
+    "agents",
+    "cli"
+  ],
+  "bin": {
+    "pi-fusion": "install.mjs"
+  },
+  "files": [
+    "src/**/*.ts",
+    "*.mjs",
+    "agents/",
+    "skills/**/*",
+    "prompts/**/*",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "pnpm run test:unit && pnpm run test:import",
+    "test:unit": "node --experimental-transform-types --test test/unit/*.test.ts",
+    "test:import": "node --experimental-transform-types -e \"import('./src/extension/index.ts').then(() => console.log('extension import ok'))\"",
+    "pack:dry-run": "pnpm pack --dry-run"
+  },
+  "pi": {
+    "extensions": [
+      "./src/extension/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./prompts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-agent-core": {
+      "optional": true
+    },
+    "@earendil-works/pi-ai": {
+      "optional": true
+    },
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@earendil-works/pi-tui": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "jiti": "^2.7.0",
+    "typebox": "^1.1.24"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-agent-core": "^0.74.0",
+    "@earendil-works/pi-ai": "^0.74.0",
+    "@earendil-works/pi-coding-agent": "^0.74.0",
+    "@earendil-works/pi-tui": "^0.74.0"
+  }
+}
