@@ -4,3 +4,7 @@ node_modules/
 *.tgz
 .env
 .env.*
+
+taste/cache/
+taste/05-pi-trial/logs/
+taste/00-config/pi-headless/sessions/
