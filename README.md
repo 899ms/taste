@@ -9,6 +9,12 @@ tools/   # one small script per step
 taste/   # numbered artifacts from corpus -> image notes -> rule set -> skill -> trial
 ```
 
+The source reference screenshots are checked in under:
+
+```text
+taste/01-corpus/reference-images/
+```
+
 Current final skill:
 
 ```text

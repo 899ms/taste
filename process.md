@@ -18,7 +18,8 @@ taste/
       auth.json            # empty; token stays in SHOPIFY_AI_TOKEN only
 
   01-corpus/
-    images.jsonl           # indexed source screenshots, paths, hashes, dimensions
+    reference-images/      # checked-in source screenshots used by this run
+    images.jsonl           # indexed source screenshots, repo paths, hashes, dimensions
 
   02-image-notes/
     raw/                   # per-image raw analyses: GPT-5.5 + Claude Opus 4.7
