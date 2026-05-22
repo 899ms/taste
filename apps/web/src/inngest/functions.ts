@@ -36,8 +36,8 @@ import { putTextArtifact, downloadBlobBytes } from "@/storage/blob";
 import { dimensions, sha256 } from "@/storage/image";
 import { inngest } from "./client";
 
-const analyzeConcurrency = Number(process.env.ANALYZE_IMAGE_CONCURRENCY ?? "100");
-const synthesizeConcurrency = Number(process.env.SYNTHESIZE_NOTE_CONCURRENCY ?? "100");
+const analyzeConcurrency = Number(process.env.ANALYZE_IMAGE_CONCURRENCY ?? "8");
+const synthesizeConcurrency = Number(process.env.SYNTHESIZE_NOTE_CONCURRENCY ?? "8");
 
 export const startRun = inngest.createFunction(
   { id: "taste-start-run" },

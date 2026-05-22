@@ -26,12 +26,14 @@ type ProcessingScreenProps = {
   creds: RunCredentials;
   initialStatus?: RunStatus | undefined;
   onComplete: () => void;
+  onAbandon: () => void;
 };
 
 export function ProcessingScreen({
   creds,
   initialStatus,
   onComplete,
+  onAbandon,
 }: ProcessingScreenProps) {
   const [status, setStatus] = useState<RunStatus | null>(initialStatus ?? null);
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -64,7 +66,7 @@ export function ProcessingScreen({
         onComplete();
       }
     } catch (err) {
-      setPollError(describeError(err, "Could not reach the run."));
+      setPollError(describeError(err, "Lost connection. Will keep trying."));
     }
   }, [creds, onComplete]);
 
@@ -83,6 +85,24 @@ export function ProcessingScreen({
     return () => window.clearInterval(id);
   }, [paused, status, tick]);
 
+  // Tab title mirrors progress so a backgrounded tab can be glanced at.
+  useEffect(() => {
+    if (!status) {
+      document.title = "Taste";
+      return;
+    }
+    if (status.status === "failed" || status.status === "canceled") {
+      document.title = "Failed · Taste";
+    } else if (status.status === "complete") {
+      document.title = "✓ Taste";
+    } else {
+      document.title = `${status.progressPercent}% · Taste`;
+    }
+    return () => {
+      document.title = "Taste";
+    };
+  }, [status]);
+
   const recentEvents = useMemo(
     () => events.slice(-MAX_VISIBLE_EVENTS).reverse(),
     [events],
@@ -90,18 +110,19 @@ export function ProcessingScreen({
 
   const failed = status?.status === "failed" || status?.status === "canceled";
   const progress = status?.progressPercent ?? 0;
+  const isComplete = status?.status === "complete";
 
   return (
     <section className="card card--lift">
       <p className="card__eyebrow">Pipeline</p>
       <div className="row row--baseline">
         <div className="metric">
-          <span className="bigvalue">{progress}</span>
-          <span className="bigvalue__unit">%</span>
+          <span className="bigvalue">{failed ? "—" : progress}</span>
+          {!failed && <span className="bigvalue__unit">%</span>}
         </div>
         <StatusPill status={status} failed={failed} pollError={pollError} />
       </div>
-      <p className="card__sub card__sub--after-row">
+      <p className="card__sub card__sub--after-row" aria-live="polite">
         {failed
           ? status?.errorMessage ?? "The pipeline stopped before completing."
           : status?.currentStep ?? "Connecting to the run…"}
@@ -110,8 +131,8 @@ export function ProcessingScreen({
       <div className="card__section">
         <div className="progress" aria-label="Pipeline progress">
           <div
-            className={`progress__fill${failed ? " progress__fill--idle" : ""}`}
-            style={{ width: `${Math.max(2, progress)}%` }}
+            className={progressFillClass(failed, isComplete)}
+            style={{ width: failed ? "0%" : `${Math.max(2, progress)}%` }}
           />
         </div>
       </div>
@@ -171,6 +192,9 @@ export function ProcessingScreen({
 
       {failed && (
         <div className="card__section btn-row">
+          <button type="button" className="btn btn--primary" onClick={onAbandon}>
+            Start a new run
+          </button>
           <button
             type="button"
             className="btn btn--quiet"
@@ -185,6 +209,13 @@ export function ProcessingScreen({
       )}
     </section>
   );
+}
+
+function progressFillClass(failed: boolean, isComplete: boolean): string {
+  const parts = ["progress__fill"];
+  if (failed) parts.push("progress__fill--idle");
+  if (isComplete) parts.push("progress__fill--complete");
+  return parts.join(" ");
 }
 
 function StatusPill({

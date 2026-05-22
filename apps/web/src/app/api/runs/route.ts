@@ -6,7 +6,7 @@ import { createRun } from "@/db/repository";
 import { errorResponse } from "@/http/errors";
 
 const createRunSchema = z.object({
-  aiGatewayToken: z.string().min(1),
+  aiGatewayToken: z.string().optional(),
   expectedImageCount: z.number().int().positive().max(100).optional(),
 });
 
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const { run, runSecret } = await createRun({
-      aiGatewayToken: body.aiGatewayToken,
+      aiGatewayToken: body.aiGatewayToken?.trim() || undefined,
       ...(body.expectedImageCount === undefined ? {} : { expectedImageCount: body.expectedImageCount }),
     });
     return Response.json({

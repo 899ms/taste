@@ -39,6 +39,12 @@ export default function Page() {
     void resumeStored(stored).then(setPhase);
   }, []);
 
+  // Keep the favicon in sync with the phase so a backgrounded tab gets a
+  // glanceable signal. The dark dot is neutral; complete swaps to accent.
+  useEffect(() => {
+    setFavicon(phase.kind === "complete" ? "complete" : "default");
+  }, [phase.kind]);
+
   const handleCreated = useCallback(
     (response: CreateRunResponse, files: File[]) => {
       const creds: RunCredentials = {
@@ -82,11 +88,7 @@ export default function Page() {
   const showClear = phase.kind !== "create" && phase.kind !== "boot";
 
   return (
-    <Shell
-      eyebrow={eyebrowFor(phase)}
-      onClear={showClear ? clearRun : undefined}
-      runId={activeRunId}
-    >
+    <Shell onClear={showClear ? clearRun : undefined} runId={activeRunId}>
       {phase.kind === "boot" && <BootCard />}
       {phase.kind === "create" && <CreateScreen onCreated={handleCreated} />}
       {phase.kind === "uploading" && (
@@ -94,6 +96,7 @@ export default function Page() {
           creds={phase.creds}
           files={phase.files}
           onComplete={handleUploadsDone}
+          onAbandon={clearRun}
         />
       )}
       {phase.kind === "processing" && (
@@ -101,6 +104,7 @@ export default function Page() {
           creds={phase.creds}
           initialStatus={phase.initialStatus}
           onComplete={handleProcessingComplete}
+          onAbandon={clearRun}
         />
       )}
       {phase.kind === "complete" && (
@@ -126,8 +130,7 @@ async function resumeStored(creds: RunCredentials): Promise<Phase> {
       return { kind: "create" };
     }
     // Both in-flight and terminal statuses route to the processing card —
-    // terminal status renders its own error state and the user can clear from
-    // the footer.
+    // terminal status renders its own error state and recovery actions.
     return { kind: "processing", creds, initialStatus: status };
   } catch (err) {
     if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
@@ -142,19 +145,20 @@ async function resumeStored(creds: RunCredentials): Promise<Phase> {
   }
 }
 
-function eyebrowFor(phase: Phase): string | undefined {
-  switch (phase.kind) {
-    case "create":
-      return "Step 1 of 3";
-    case "uploading":
-      return "Step 2 of 3";
-    case "processing":
-      return "Step 3 of 3";
-    case "complete":
-      return "Done";
-    default:
-      return undefined;
+type FaviconState = "default" | "complete";
+
+function setFavicon(state: FaviconState): void {
+  if (typeof document === "undefined") return;
+  const color = state === "complete" ? "#2D7A4A" : "#0E0E0E";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="7" fill="${color}"/></svg>`;
+  const href = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  let link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "icon";
+    document.head.appendChild(link);
   }
+  link.href = href;
 }
 
 function BootCard() {

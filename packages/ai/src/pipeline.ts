@@ -46,7 +46,7 @@ export async function synthesizeImageNote(
 }
 
 export async function extractRuleChunk(input: {
-  aiGatewayToken: string;
+  aiGatewayToken?: string | undefined;
   model: string;
   chunk: ChunkSpec;
 }): Promise<TextGenerationResult> {
@@ -59,7 +59,7 @@ export async function extractRuleChunk(input: {
 }
 
 export async function synthesizeRuleSet(input: {
-  aiGatewayToken: string;
+  aiGatewayToken?: string | undefined;
   model: string;
   chunkResults: RuleChunkResult[];
 }): Promise<TextGenerationResult> {
@@ -72,7 +72,7 @@ export async function synthesizeRuleSet(input: {
 }
 
 export async function generateSkill(input: {
-  aiGatewayToken: string;
+  aiGatewayToken?: string | undefined;
   model: string;
   ruleSet: string;
 }): Promise<TextGenerationResult> {

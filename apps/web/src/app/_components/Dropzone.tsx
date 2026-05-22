@@ -73,7 +73,7 @@ export function Dropzone({
       <div>
         <div className="dropzone__primary">
           {fileCount === 0
-            ? "Drop images here, or click to select"
+            ? "Drop images, or browse"
             : `${fileCount} ${fileCount === 1 ? "image" : "images"} — ${formatBytes(totalBytes)}`}
         </div>
         <div className="dropzone__secondary">

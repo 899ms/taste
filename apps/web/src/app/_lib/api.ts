@@ -16,7 +16,7 @@ export const PRE_CREATE_ACCEPTED_TYPES = [
 ] as const;
 
 export type CreateRunInput = {
-  aiGatewayToken: string;
+  aiGatewayToken?: string;
   expectedImageCount?: number;
 };
 

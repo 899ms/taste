@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { after } from "next/server";
 
 import { analysisModels, env } from "@/config";
 import {
@@ -8,9 +9,9 @@ import {
 } from "@/db/repository";
 import { errorResponse } from "@/http/errors";
 import { requireRunAccess, routeParams } from "@/http/auth";
-import { inngest } from "@/inngest/client";
+import { processRun } from "@/pipeline/run";
 
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 export async function POST(
   request: NextRequest,
@@ -38,7 +39,9 @@ export async function POST(
       images: images.length,
       analysisModels: analysisModels(),
     });
-    await inngest.send({ name: "taste/run.started", data: { runId } });
+    after(async () => {
+      await processRun(runId);
+    });
     return Response.json({ ok: true, runId, status: "queued" });
   } catch (error) {
     return errorResponse(error);

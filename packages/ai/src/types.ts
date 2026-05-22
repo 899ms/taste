@@ -27,7 +27,7 @@ export type RawAnalysisInput = {
   image: TasteImage;
   imageInput: ImageInput;
   model: ModelId;
-  aiGatewayToken: string;
+  aiGatewayToken?: string | undefined;
 };
 
 export type SynthesizeImageNoteInput = {
@@ -38,7 +38,7 @@ export type SynthesizeImageNoteInput = {
     text: string;
   }>;
   model: ModelId;
-  aiGatewayToken: string;
+  aiGatewayToken?: string | undefined;
 };
 
 export type ChunkSpec = {

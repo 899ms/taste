@@ -85,6 +85,38 @@ a {
   color: var(--text);
 }
 
+/* Focus rings ------------------------------------------------------- */
+
+.btn:focus-visible,
+.input:focus-visible,
+.dropzone:focus-visible,
+.filerow__remove:focus-visible,
+.input-wrap__toggle:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--canvas),
+    0 0 0 4px var(--text);
+}
+
+.dropzone:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--canvas),
+    0 0 0 4px var(--text);
+}
+
+/* Reduced motion ---------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* App chrome --------------------------------------------------------- */
 
 .shell {
@@ -163,10 +195,34 @@ a {
   border-radius: var(--radius-card);
   padding: 44px;
   box-shadow: var(--shadow-card);
+  animation: card-enter 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 .card--lift {
   box-shadow: var(--shadow-lift);
+}
+
+.card__head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+}
+
+.card__head-row .card__eyebrow {
+  margin: 0;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card__eyebrow {
@@ -250,6 +306,35 @@ a {
   letter-spacing: -0.01em;
 }
 
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap .input {
+  padding-right: 52px;
+}
+
+.input-wrap__toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  background: transparent;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.input-wrap__toggle:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+
 /* Buttons ------------------------------------------------------------ */
 
 .btn {
@@ -311,6 +396,20 @@ a {
 
 .btn-row__caption {
   font-size: 13px;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0;
+  user-select: none;
 }
 
 /* Dropzone ----------------------------------------------------------- */
@@ -376,12 +475,73 @@ a {
   margin-top: 8px;
 }
 
+.filelist__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 4px;
+}
+
+.filelist__head .muted {
+  font-size: 12px;
+}
+
+.filelist--scroll {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+  /* Soft fade at top and bottom so the clip reads as containment, not a hard
+     edge. Mirrored to -webkit- so it works in Safari. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent 100%
+  );
+}
+
+.filelist--scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filelist--scroll::-webkit-scrollbar-thumb {
+  background: var(--divider-strong);
+  border-radius: var(--radius-pill);
+}
+
+.filelist--scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .filerow {
   display: grid;
   grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 16px;
   padding: 14px 4px;
+}
+
+.filerow--withthumb {
+  grid-template-columns: 40px 1fr auto auto;
+}
+
+.filerow__thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  background: var(--surface-3);
 }
 
 .filerow + .filerow {
@@ -454,6 +614,10 @@ a {
   background: var(--accent);
   border-radius: var(--radius-pill);
   transition: width 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.progress__fill--complete {
+  transition: width 600ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .progress__fill--idle {
@@ -553,6 +717,19 @@ a {
 
 .statuspill--done .statuspill__dot {
   background: var(--accent);
+  animation: dot-pulse-once 600ms ease;
+}
+
+@keyframes dot-pulse-once {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.6);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .statuspill--err {

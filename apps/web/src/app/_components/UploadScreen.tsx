@@ -3,10 +3,16 @@
 import { upload } from "@vercel/blob/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { describeError, startRun, type RunCredentials } from "../_lib/api";
+import {
+  cancelRun,
+  describeError,
+  startRun,
+  type RunCredentials,
+} from "../_lib/api";
 import { formatBytes } from "../_lib/format";
 
 const UPLOAD_CONCURRENCY = 12;
+const FILELIST_SCROLL_THRESHOLD = 6;
 
 type UploadState = "pending" | "uploading" | "done" | "error";
 
@@ -21,19 +27,21 @@ type UploadScreenProps = {
   creds: RunCredentials;
   files: File[];
   onComplete: () => void;
+  onAbandon: () => void;
 };
 
-export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
+export function UploadScreen({ creds, files, onComplete, onAbandon }: UploadScreenProps) {
   const [items, setItems] = useState<FileItem[]>(() =>
     files.map((file, index) => ({ uploadOrder: index, file, state: "pending" as const })),
   );
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [canceling, setCanceling] = useState(false);
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const startedRef = useRef(false);
-  const startRequestedRef = useRef(false);
   const uploadingRef = useRef(false);
+  const abortedRef = useRef(false);
 
   const counts = useMemo(() => {
     let done = 0;
@@ -52,7 +60,8 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
   }, []);
 
   const uploadOne = useCallback(
-    async (item: FileItem) => {
+    async (item: FileItem): Promise<boolean> => {
+      if (abortedRef.current) return false;
       updateItem(item.uploadOrder, { state: "uploading", error: undefined });
       try {
         await upload(item.file.name, item.file, {
@@ -68,18 +77,23 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
             size: item.file.size,
           }),
         });
+        if (abortedRef.current) return false;
         updateItem(item.uploadOrder, { state: "done" });
+        return true;
       } catch (err) {
+        if (abortedRef.current) return false;
         updateItem(item.uploadOrder, {
           state: "error",
           error: describeError(err, "Upload failed for this image."),
         });
+        return false;
       }
     },
     [creds.runId, creds.runSecret, updateItem],
   );
 
   const tryStart = useCallback(async () => {
+    if (abortedRef.current) return;
     setStarting(true);
     setStartError(null);
     try {
@@ -93,16 +107,32 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
 
   const runUploads = useCallback(async () => {
     if (uploadingRef.current) return;
+    if (abortedRef.current) return;
     uploadingRef.current = true;
     try {
       const pending = itemsRef.current.filter(
         (item) => item.state === "pending" || item.state === "error",
       );
-      await mapConcurrent(pending, UPLOAD_CONCURRENCY, uploadOne);
+      const results = await mapConcurrent(pending, UPLOAD_CONCURRENCY, uploadOne);
+      if (results.length > 0 && results.every(Boolean)) {
+        await tryStart();
+      }
     } finally {
       uploadingRef.current = false;
     }
   }, [tryStart, uploadOne]);
+
+  const handleCancel = useCallback(async () => {
+    if (canceling) return;
+    setCanceling(true);
+    abortedRef.current = true;
+    try {
+      await cancelRun(creds);
+    } catch {
+      // Best-effort. We still abandon locally so the user isn't stuck.
+    }
+    onAbandon();
+  }, [canceling, creds, onAbandon]);
 
   // Kick uploads off once on mount.
   useEffect(() => {
@@ -111,31 +141,45 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
     void runUploads();
   }, [runUploads]);
 
+  // Tab title reflects upload progress so a backgrounded tab is informative.
+  useEffect(() => {
+    if (counts.total === 0) return;
+    document.title = `Uploading ${counts.done}/${counts.total} · Taste`;
+    return () => {
+      document.title = "Taste";
+    };
+  }, [counts.done, counts.total]);
+
   const allDone = counts.done === counts.total && counts.failed === 0;
   const progressPercent =
     counts.total === 0 ? 0 : Math.round((counts.done / counts.total) * 100);
-
-  useEffect(() => {
-    if (!allDone || startRequestedRef.current) return;
-    startRequestedRef.current = true;
-    void tryStart();
-  }, [allDone, tryStart]);
+  const useScroll = items.length > FILELIST_SCROLL_THRESHOLD;
 
   return (
     <section className="card card--lift">
-      <p className="card__eyebrow">Uploading</p>
+      <div className="card__head-row">
+        <p className="card__eyebrow">Uploading</p>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => void handleCancel()}
+          disabled={canceling || starting}
+        >
+          {canceling ? "Canceling…" : "Cancel"}
+        </button>
+      </div>
       <div className="metric">
         <span className="bigvalue">{counts.done}</span>
         <span className="bigvalue__unit"> / {counts.total}</span>
       </div>
-      <p className="card__sub">
+      <p className="card__sub" aria-live="polite">
         {allDone
           ? starting
-            ? "All images uploaded. Starting the pipeline…"
-            : "All images uploaded."
+            ? "Uploads complete. Starting…"
+            : "Uploads complete."
           : counts.failed > 0
           ? `${counts.failed} ${counts.failed === 1 ? "image" : "images"} failed. Retry to continue.`
-          : "Uploading reference images to Blob storage."}
+          : "Uploading reference images."}
       </p>
 
       <div className="card__section">
@@ -144,7 +188,10 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
         </div>
       </div>
 
-      <ul className="filelist" aria-label="Upload list">
+      <ul
+        className={`filelist${useScroll ? " filelist--scroll" : ""}`}
+        aria-label="Upload list"
+      >
         {items.map((item) => (
           <li key={item.uploadOrder} className="filerow">
             <div className="filerow__text">
@@ -169,7 +216,7 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
               type="button"
               className="btn btn--quiet"
               onClick={() => void runUploads()}
-              disabled={starting}
+              disabled={starting || canceling}
             >
               Retry failed uploads
             </button>
@@ -179,7 +226,7 @@ export function UploadScreen({ creds, files, onComplete }: UploadScreenProps) {
               type="button"
               className="btn btn--primary"
               onClick={() => void tryStart()}
-              disabled={starting}
+              disabled={starting || canceling}
             >
               {starting ? (
                 <>
@@ -215,21 +262,23 @@ function statusClass(state: UploadState): string {
   return "filerow__status";
 }
 
-async function mapConcurrent<T>(
+async function mapConcurrent<T, R>(
   items: T[],
   concurrency: number,
-  worker: (item: T) => Promise<void>,
-): Promise<void> {
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
   const limit = Math.max(1, Math.min(items.length, concurrency));
   let next = 0;
+  const results: R[] = [];
   await Promise.all(
     Array.from({ length: limit }, async () => {
       while (next < items.length) {
         const index = next;
         next += 1;
         const item = items[index];
-        if (item !== undefined) await worker(item);
+        if (item !== undefined) results[index] = await worker(item);
       }
     }),
   );
+  return results;
 }

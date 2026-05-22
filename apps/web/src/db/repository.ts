@@ -28,18 +28,20 @@ export type RunStatus =
   | "canceled";
 
 export async function createRun(input: {
-  aiGatewayToken: string;
+  aiGatewayToken?: string | undefined;
   expectedImageCount?: number | undefined;
 }) {
   const runSecret = createSecret();
-  const encrypted = encryptSecret(input.aiGatewayToken, env().APP_ENCRYPTION_KEY);
+  const encrypted = input.aiGatewayToken
+    ? encryptSecret(input.aiGatewayToken, env().APP_ENCRYPTION_KEY)
+    : null;
   const [run] = await db
     .insert(runs)
     .values({
       runSecretHash: hashSecret(runSecret),
-      encryptedAiGatewayToken: encrypted.ciphertext,
-      aiGatewayTokenIv: encrypted.iv,
-      aiGatewayTokenTag: encrypted.tag,
+      encryptedAiGatewayToken: encrypted?.ciphertext ?? null,
+      aiGatewayTokenIv: encrypted?.iv ?? null,
+      aiGatewayTokenTag: encrypted?.tag ?? null,
       expectedImageCount: input.expectedImageCount,
       maxImages: env().MAX_IMAGES_PER_RUN,
     })
@@ -70,7 +72,7 @@ export async function verifyRunSecret(runId: string, runSecret: string): Promise
 
 export function decryptRunToken(run: Pick<Run, "encryptedAiGatewayToken" | "aiGatewayTokenIv" | "aiGatewayTokenTag">): string {
   if (!run.encryptedAiGatewayToken || !run.aiGatewayTokenIv || !run.aiGatewayTokenTag) {
-    throw new Error("Run AI Gateway token is unavailable");
+    return "";
   }
   return decryptSecret(
     {

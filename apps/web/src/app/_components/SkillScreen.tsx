@@ -38,7 +38,6 @@ export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
-      // Clipboard might be blocked. Surface a quiet recovery path.
       setError("Clipboard access was blocked. Use the download option instead.");
     }
   }, [content]);
@@ -56,6 +55,29 @@ export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
     URL.revokeObjectURL(url);
   }, [content]);
 
+  // Keyboard shortcuts:
+  // - ⌘C / Ctrl+C copies the skill, but only when the user has no active text
+  //   selection — otherwise we'd hijack their natural copy gesture.
+  // - ⌘↓ / Ctrl+↓ downloads.
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (!content) return;
+      const mod = event.metaKey || event.ctrlKey;
+      if (!mod) return;
+      if (event.key === "c" || event.key === "C") {
+        const selection = window.getSelection()?.toString();
+        if (selection && selection.length > 0) return;
+        event.preventDefault();
+        void handleCopy();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        handleDownload();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [content, handleCopy, handleDownload]);
+
   return (
     <section className="card card--lift">
       <p className="card__eyebrow">Complete</p>
@@ -71,7 +93,13 @@ export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
           onClick={() => void handleCopy()}
           disabled={!content || loading}
         >
-          {copied ? "Copied" : "Copy to clipboard"}
+          {copied ? (
+            <>
+              <CheckGlyph /> Copied
+            </>
+          ) : (
+            "Copy to clipboard"
+          )}
         </button>
         <button
           type="button"
@@ -84,6 +112,7 @@ export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
         <button type="button" className="btn btn--ghost" onClick={onStartAnother}>
           Start another run
         </button>
+        {content && <span className="kbd">⌘C</span>}
       </div>
 
       {loading && (
@@ -109,5 +138,23 @@ export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
         </div>
       )}
     </section>
+  );
+}
+
+function CheckGlyph() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }
