@@ -10,8 +10,8 @@ const execFileAsync = promisify(execFile);
 const DEFAULT_MODELS = ["openai/gpt-5.5", "anthropic/claude-opus-4-7"];
 const args = process.argv.slice(2);
 const count = readFlag("--count") ? Number(readFlag("--count")) : undefined;
-const indexPath = path.resolve(readFlag("--index") ?? "taste/01-corpus/images.jsonl");
-const outRoot = path.resolve(readFlag("--out") ?? "taste/02-image-notes/raw");
+const indexPath = path.resolve(readFlag("--index") ?? "pipeline/taste/01-corpus/images.jsonl");
+const outRoot = path.resolve(readFlag("--out") ?? "pipeline/taste/02-image-notes/raw");
 const models = (readFlag("--models")?.split(",").map((m) => m.trim()).filter(Boolean)) ?? DEFAULT_MODELS;
 const token = process.env.SHOPIFY_AI_TOKEN;
 
@@ -97,7 +97,7 @@ async function imageAsData(file) {
 }
 
 async function prepareProxyImage(file) {
-  const cacheDir = path.resolve("taste/cache/proxy-images");
+  const cacheDir = path.resolve("pipeline/taste/cache/proxy-images");
   await mkdir(cacheDir, { recursive: true });
   const parsed = path.parse(file);
   const outPath = path.join(cacheDir, `${slug(parsed.name)}-max2000.jpg`);

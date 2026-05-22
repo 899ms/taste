@@ -5,6 +5,6 @@ node_modules/
 .env
 .env.*
 
-taste/cache/
-taste/05-pi-trial/logs/
-taste/00-config/pi-headless/sessions/
+pipeline/taste/cache/
+pipeline/taste/05-pi-trial/logs/
+pipeline/taste/00-config/pi-headless/sessions/

@@ -8,9 +8,9 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const args = process.argv.slice(2);
 const count = readFlag("--count") ? Number(readFlag("--count")) : undefined;
-const indexPath = path.resolve(readFlag("--index") ?? "taste/01-corpus/images.jsonl");
-const perImageRoot = path.resolve(readFlag("--per-image") ?? "taste/02-image-notes/raw");
-const outRoot = path.resolve(readFlag("--out") ?? "taste/02-image-notes/synthesized");
+const indexPath = path.resolve(readFlag("--index") ?? "pipeline/taste/01-corpus/images.jsonl");
+const perImageRoot = path.resolve(readFlag("--per-image") ?? "pipeline/taste/02-image-notes/raw");
+const outRoot = path.resolve(readFlag("--out") ?? "pipeline/taste/02-image-notes/synthesized");
 const synthModel = readFlag("--model") ?? "openai/gpt-5.5";
 const token = process.env.SHOPIFY_AI_TOKEN;
 
@@ -167,7 +167,7 @@ async function imageAsData(file) {
 }
 
 async function prepareProxyImage(file) {
-  const cacheDir = path.resolve("taste/cache/proxy-images");
+  const cacheDir = path.resolve("pipeline/taste/cache/proxy-images");
   await mkdir(cacheDir, { recursive: true });
   const parsed = path.parse(file);
   const outPath = path.join(cacheDir, `${slug(parsed.name)}-max2000.jpg`);

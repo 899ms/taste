@@ -7,13 +7,13 @@ import path from "node:path";
 const args = process.argv.slice(2);
 const promptPath = readFlag("--prompt");
 const workspace = readFlag("--workspace");
-const skillSource = readFlag("--skill-source") ?? "taste/04-skill";
-const skillPath = readFlag("--skill") ?? (workspace ? "skills/taste-design" : "taste/04-skill");
-const configDir = readFlag("--config-dir") ?? "taste/00-config/pi-headless";
+const skillSource = readFlag("--skill-source") ?? "pipeline/taste/04-skill";
+const skillPath = readFlag("--skill") ?? (workspace ? "skills/taste-design" : "pipeline/taste/04-skill");
+const configDir = readFlag("--config-dir") ?? "pipeline/taste/00-config/pi-headless";
 const provider = readFlag("--provider") ?? "shopify-anthropic";
 const model = readFlag("--model") ?? "anthropic:claude-opus-4-7";
 const thinking = readFlag("--thinking") ?? "medium";
-const logDir = readFlag("--log-dir") ?? "taste/05-pi-trial/logs";
+const logDir = readFlag("--log-dir") ?? "pipeline/taste/05-pi-trial/logs";
 const latestName = readFlag("--latest-name") ?? "latest-pi-headless.jsonl";
 const tools = readFlag("--tools") ?? "write";
 const clean = !hasFlag("--no-clean");
@@ -21,7 +21,7 @@ const streamJson = hasFlag("--stream-json");
 const inlineSkill = !hasFlag("--no-inline-skill");
 
 if (!promptPath) {
-  console.error("Usage: node tools/06-run-pi-trial.mjs --prompt <prompt.md> [--workspace <dir>]");
+  console.error("Usage: node pipeline/tools/06-run-pi-trial.mjs --prompt <prompt.md> [--workspace <dir>]");
   process.exit(1);
 }
 

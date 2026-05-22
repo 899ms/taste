@@ -10,7 +10,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const DEFAULT_SOURCE = "/Users/jaytel/Desktop/taste-selects";
 const sourceDir = path.resolve(process.argv[2] ?? DEFAULT_SOURCE);
-const outPath = path.resolve(process.argv[3] ?? "taste/01-corpus/images.jsonl");
+const outPath = path.resolve(process.argv[3] ?? "pipeline/taste/01-corpus/images.jsonl");
 const supported = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
 await main();

@@ -4,8 +4,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const args = process.argv.slice(2);
-const rulePath = path.resolve(readFlag("--rule-set") ?? "taste/03-rule-set/rule-set.md");
-const skillOut = path.resolve(readFlag("--out") ?? "taste/04-skill/SKILL.md");
+const rulePath = path.resolve(readFlag("--rule-set") ?? "pipeline/taste/03-rule-set/rule-set.md");
+const skillOut = path.resolve(readFlag("--out") ?? "pipeline/taste/04-skill/SKILL.md");
 const model = readFlag("--model") ?? "openai/gpt-5.5";
 const token = process.env.SHOPIFY_AI_TOKEN;
 

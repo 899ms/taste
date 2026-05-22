@@ -5,10 +5,10 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const args = process.argv.slice(2);
-const inputDir = path.resolve(readFlag("--input") ?? "taste/02-image-notes/synthesized");
-const ruleOut = path.resolve(readFlag("--rule-out") ?? "taste/03-rule-set/rule-set.md");
+const inputDir = path.resolve(readFlag("--input") ?? "pipeline/taste/02-image-notes/synthesized");
+const ruleOut = path.resolve(readFlag("--rule-out") ?? "pipeline/taste/03-rule-set/rule-set.md");
 const runId = readFlag("--run-id") ?? timestampId();
-const workDir = path.resolve(readFlag("--work-dir") ?? `taste/03-rule-set/chunks/${runId}`);
+const workDir = path.resolve(readFlag("--work-dir") ?? `pipeline/taste/03-rule-set/chunks/${runId}`);
 const model = readFlag("--model") ?? "openai/gpt-5.5";
 const chunks = Number(readFlag("--chunks") ?? "4");
 const chunkSize = Number(readFlag("--chunk-size") ?? "7");
