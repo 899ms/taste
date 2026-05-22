@@ -1,0 +1,113 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+import { describeError, fetchSkill, type RunCredentials } from "../_lib/api";
+
+type SkillScreenProps = {
+  creds: RunCredentials;
+  onStartAnother: () => void;
+};
+
+export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
+  const [content, setContent] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setContent(await fetchSkill(creds));
+    } catch (err) {
+      setError(describeError(err, "Could not fetch the skill."));
+    } finally {
+      setLoading(false);
+    }
+  }, [creds]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleCopy = useCallback(async () => {
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Clipboard might be blocked. Surface a quiet recovery path.
+      setError("Clipboard access was blocked. Use the download option instead.");
+    }
+  }, [content]);
+
+  const handleDownload = useCallback(() => {
+    if (!content) return;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "SKILL.md";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [content]);
+
+  return (
+    <section className="card card--lift">
+      <p className="card__eyebrow">Complete</p>
+      <h1 className="card__title">Your taste skill is ready.</h1>
+      <p className="card__sub">
+        A single SKILL.md captured from the pipeline. Copy it, save it, or start a new run.
+      </p>
+
+      <div className="card__section btn-row">
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => void handleCopy()}
+          disabled={!content || loading}
+        >
+          {copied ? "Copied" : "Copy to clipboard"}
+        </button>
+        <button
+          type="button"
+          className="btn btn--quiet"
+          onClick={handleDownload}
+          disabled={!content || loading}
+        >
+          Download SKILL.md
+        </button>
+        <button type="button" className="btn btn--ghost" onClick={onStartAnother}>
+          Start another run
+        </button>
+      </div>
+
+      {loading && (
+        <p className="notice notice--quiet">
+          <span className="spinner" /> Loading skill…
+        </p>
+      )}
+
+      {error && (
+        <div className="notice">
+          {error}
+          <div className="notice__actions">
+            <button type="button" className="btn btn--quiet" onClick={() => void load()}>
+              Try again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {content && (
+        <div className="skill" aria-label="Generated SKILL.md">
+          <pre className="skill__pre">{content}</pre>
+        </div>
+      )}
+    </section>
+  );
+}

@@ -4,8 +4,8 @@ This repo is organized for three separate concerns:
 
 ```text
 pipeline/     # existing taste-skill process, tools, and generated artifacts
-apps/web/     # reserved home for the future web app; not built yet
-packages/ai/  # reserved AI provider boundary for internal vs external AI sources
+apps/web/     # Vercel/Next.js backend for the web app version of the pipeline
+packages/ai/  # shared AI prompt and pipeline generation package
 ```
 
 ## Pipeline
@@ -28,11 +28,26 @@ pipeline/taste/04-skill/SKILL.md
 
 ## Web app
 
-The future web app has a reserved location at [`apps/web/`](apps/web/). It is intentionally only documentation/placeholders for now.
+The web app turns the existing pipeline into an interactive product surface in [`apps/web/`](apps/web/).
 
-Build order:
+The app should preserve the current pipeline shape:
 
-1. **Internal Shopify web app** — uses Shopify internal AI/proxy APIs.
-2. **External web app** — uses external/public AI APIs or customer-configured AI credentials.
+1. Curate or upload reference images.
+2. Index the corpus.
+3. Run image analyses.
+4. Synthesize canonical image notes.
+5. Generate a concrete visual rule set.
+6. Generate a reusable taste skill.
+7. Run and inspect clean benchmark trials.
 
-The core app should be shared where possible. The AI API source should be isolated behind the provider boundary in [`packages/ai/`](packages/ai/).
+The backend now exposes the pipeline through API routes in [`apps/web/`](apps/web/) and shared AI generation code in [`packages/ai/`](packages/ai/).
+
+Speed-first defaults:
+
+```text
+analysis models: openai/gpt-5.5 + anthropic/claude-sonnet-4.6
+max images:      100
+runner:          Inngest fan-out/fan-in jobs
+storage:         Vercel Blob + Postgres
+AI access:       per-run AI Gateway token supplied by the user
+```

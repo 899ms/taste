@@ -1,43 +1,106 @@
-# Web App
+# Web App Backend
 
-Reserved home for the product web app. Do not add framework/app code here until we intentionally start the build.
+Vercel-hosted Next.js backend for turning uploaded reference images into a final `SKILL.md`.
 
-## Rollout plan
+## Product direction
 
-### 1. Internal Shopify app first
+Build the existing taste pipeline into a web app.
 
-Target: Shopify-internal users.
+The backend makes the current linear workflow usable from a browser:
 
-Expected AI source:
+1. Add and manage reference images.
+2. Index the image corpus.
+3. Run model analysis for each image.
+4. Review raw analyses and synthesized image notes.
+5. Generate and edit the visual rule set.
+6. Generate the final taste skill.
+7. Run benchmark trials and inspect outputs.
 
-```text
-Shopify internal AI/proxy APIs
-```
+The frontend contract is intentionally small: create a run with a user-provided AI Gateway token, upload reference images, start the run, poll progress, and fetch the final skill.
 
-This version can assume internal authentication, network access, and AI credentials/configuration available only inside Shopify.
-
-### 2. External app later
-
-Target: users outside Shopify.
-
-Expected AI source:
+## Architecture
 
 ```text
-public/commercial AI provider APIs or customer-configured provider credentials
+frontend -> Next API routes -> Inngest jobs -> @taste/ai -> Vercel AI Gateway
+                         \-> Postgres state
+                         \-> Vercel Blob uploads/artifacts
 ```
 
-This version should reuse the same product surfaces where possible. The main planned difference is the AI usage API source, not the core app workflow.
-
-## Architectural constraint
-
-Keep AI usage behind a provider boundary from the start:
+Generated artifacts preserve the original pipeline shape under Blob paths like:
 
 ```text
-web app -> AI service interface -> provider adapter
-                              -> shopify-internal adapter first
-                              -> external provider adapter later
+runs/{runId}/01-corpus/images.jsonl
+runs/{runId}/02-image-notes/raw/img_0001/openai_gpt-5.5.md
+runs/{runId}/02-image-notes/raw/img_0001/anthropic_claude-sonnet-4.6.md
+runs/{runId}/02-image-notes/synthesized/img_0001.md
+runs/{runId}/03-rule-set/rule-set.md
+runs/{runId}/04-skill/SKILL.md
 ```
 
-Do not scatter direct AI API calls through UI/routes. The Shopify-internal and external versions should swap AI providers through configuration or deployment target.
+## API contract
 
-See [`../../packages/ai/README.md`](../../packages/ai/README.md) for the reserved AI provider package plan.
+All run-scoped routes after creation require the `runSecret` returned from `POST /api/runs`, either as `x-run-secret` or `?runSecret=...`.
+
+```text
+POST /api/runs
+  body: { aiGatewayToken: string, expectedImageCount?: number }
+  returns: { runId, runSecret, maxImages, maxImageBytes, acceptedTypes }
+
+POST /api/uploads
+  Vercel Blob client upload route.
+  clientPayload: { runId, runSecret, uploadOrder, fileName, contentType, size }
+
+POST /api/runs/:runId/cancel
+  Cancels the run, marks it canceled, and purges the encrypted AI Gateway token.
+
+POST /api/runs/:runId/images/complete
+  Local/dev fallback for registering completed uploads manually.
+
+POST /api/runs/:runId/start
+  Starts the Inngest pipeline.
+
+GET /api/runs/:runId
+  Returns status, current step, progress, counters, and artifact readiness.
+
+GET /api/runs/:runId/events?after=<id>
+  Returns progress events after the given event id.
+
+GET /api/runs/:runId/skill
+  Returns the final SKILL.md once complete.
+```
+
+Reference image uploads use the Vercel Blob client upload flow from the browser. Generated text artifacts are written by the server under the same run prefix.
+
+## Environment
+
+```text
+DATABASE_URL=...
+APP_ENCRYPTION_KEY=32+ bytes or a 32-byte base64url/64-char hex key
+BLOB_READ_WRITE_TOKEN=...
+INNGEST_EVENT_KEY=...
+INNGEST_SIGNING_KEY=...
+```
+
+Optional speed/model defaults:
+
+```text
+MAX_IMAGES_PER_RUN=100
+MAX_IMAGE_BYTES=10485760
+ANALYSIS_MODELS=openai/gpt-5.5,anthropic/claude-sonnet-4.6
+SYNTHESIS_MODEL=openai/gpt-5.5
+RULE_MODEL=openai/gpt-5.5
+SKILL_MODEL=openai/gpt-5.5
+ANALYZE_IMAGE_CONCURRENCY=100
+SYNTHESIZE_NOTE_CONCURRENCY=100
+RULE_CHUNK_SIZE=10
+```
+
+## Development
+
+```bash
+npm install
+npm run db:migrate --workspace @taste/web
+npm run dev:web
+```
+
+For local Vercel Blob upload callbacks, use a public tunnel and set `VERCEL_BLOB_CALLBACK_URL`, or use `POST /api/runs/:runId/images/complete` after uploading.

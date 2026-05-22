@@ -1,0 +1,23 @@
+{
+  "name": "taste",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "workspaces": [
+    "apps/web",
+    "packages/ai"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:web": "npm run dev --workspace @taste/web",
+    "db:generate": "npm run db:generate --workspace @taste/web"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  }
+}
