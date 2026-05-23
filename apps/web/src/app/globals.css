@@ -37,6 +37,7 @@
 
 * {
   box-sizing: border-box;
+  corner-shape: superellipse(1);
 }
 
 html,
