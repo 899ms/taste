@@ -14,13 +14,19 @@ import {
   describeError,
   fetchCredentialStatus,
   fetchRunStatus,
+  fetchSkill,
   isTerminal,
   type CreateRunResponse,
   type CredentialStatus,
   type RunCredentials,
   type RunStatus,
 } from "./_lib/api";
-import { clearStoredRun, loadStoredRun, saveStoredRun } from "./_lib/storage";
+import {
+  clearStoredRun,
+  loadStoredRun,
+  saveStoredRun,
+  saveStoredSkillGeneration,
+} from "./_lib/storage";
 
 type Phase =
   | { kind: "boot" }
@@ -190,7 +196,18 @@ async function resumeStored(creds: RunCredentials): Promise<Phase> {
   try {
     const status = await fetchRunStatus(creds);
     if (status.status === "complete" && status.artifacts.skillReady) {
-      return { kind: "complete", creds };
+      try {
+        const saved = saveStoredSkillGeneration({
+          runId: creds.runId,
+          content: await fetchSkill(creds),
+          name: status.skillName,
+        });
+        if (!saved) return { kind: "complete", creds };
+        clearStoredRun();
+        return { kind: "create" };
+      } catch {
+        return { kind: "complete", creds };
+      }
     }
     if (status.status === "uploading") {
       clearStoredRun();

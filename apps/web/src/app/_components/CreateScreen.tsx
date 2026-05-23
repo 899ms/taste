@@ -15,6 +15,7 @@ import {
 } from "../_lib/api";
 import { formatBytes } from "../_lib/format";
 import { Dropzone } from "./Dropzone";
+import { PastGenerations } from "./PastGenerations";
 
 type SelectedFile = {
   id: string;
@@ -214,127 +215,129 @@ export function CreateScreen({ credentials, onCreated }: CreateScreenProps) {
   );
 
   return (
-    <section className="card card--lift">
-      <h1 className="card__title">Turn reference images into a taste skill.</h1>
-      <p className="card__sub">
-        Drop in a corpus, then the pipeline will produce a single reusable SKILL.md.
-      </p>
+    <>
+      <section className="card card--lift">
+        <h1 className="card__title">Turn reference images into a taste skill.</h1>
+        <p className="card__sub">
+          Drop in a corpus, then the pipeline will produce a single reusable SKILL.md.
+        </p>
 
-      <div className="card__section">
-        {files.length === 0 ? (
-          <Dropzone
-            active={dragActive}
-            disabled={submitting}
-            fileCount={files.length}
-            totalBytes={totalBytes}
-            onActiveChange={setDragActive}
-            onSelect={addFiles}
-            onClick={openFilePicker}
-          />
-        ) : (
-          <div
-            className={`filepanel${dragActive ? " filepanel--active" : ""}`}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            aria-label="Selected images. Drop more files here to add."
-          >
-            <div className="filepanel__head">
-              <span className="muted">
-                {files.length} {files.length === 1 ? "image" : "images"} · {formatBytes(totalBytes)}
-              </span>
-              <div className="filepanel__actions">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={openFilePicker}
-                  disabled={submitting}
-                >
-                  + Add more
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={clearAll}
-                  disabled={submitting}
-                >
-                  Clear all
-                </button>
-              </div>
-            </div>
-            <ul
-              className={`filelist${useScroll ? " filelist--scroll" : ""}`}
-              aria-label="Selected images"
+        <div className="card__section">
+          {files.length === 0 ? (
+            <Dropzone
+              active={dragActive}
+              disabled={submitting}
+              fileCount={files.length}
+              totalBytes={totalBytes}
+              onActiveChange={setDragActive}
+              onSelect={addFiles}
+              onClick={openFilePicker}
+            />
+          ) : (
+            <div
+              className={`filepanel${dragActive ? " filepanel--active" : ""}`}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              aria-label="Selected images. Drop more files here to add."
             >
-              {files.map((item) => (
-                <li key={item.id} className="filerow filerow--withthumb">
-                  <img
-                    src={item.previewUrl}
-                    alt=""
-                    className="filerow__thumb"
-                    loading="lazy"
-                  />
-                  <div className="filerow__text">
-                    <span className="filerow__name">{item.file.name}</span>
-                    <span className="filerow__meta">{formatBytes(item.file.size)}</span>
-                  </div>
-                  <span className="filerow__status">Ready</span>
+              <div className="filepanel__head">
+                <span className="muted">
+                  {files.length} {files.length === 1 ? "image" : "images"} ·{" "}
+                  {formatBytes(totalBytes)}
+                </span>
+                <div className="filepanel__actions">
                   <button
                     type="button"
-                    aria-label={`Remove ${item.file.name}`}
-                    className="filerow__remove"
-                    onClick={() => removeFile(item.id)}
+                    className="btn btn--ghost btn--sm"
+                    onClick={openFilePicker}
                     disabled={submitting}
                   >
-                    ×
+                    + Add more
                   </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <input
-          ref={inputRef}
-          type="file"
-          accept={PRE_CREATE_ACCEPTED_TYPES.join(",")}
-          multiple
-          className="dropzone__input"
-          onChange={(event) => {
-            if (event.target.files) addFiles(event.target.files);
-            event.target.value = "";
-          }}
-        />
-      </div>
-
-      {info && <p className="notice notice--quiet">{info}</p>}
-
-      {error && <p className="notice">{error}</p>}
-
-      <div className="card__section btn-row">
-        <button
-          type="button"
-          className="btn btn--primary"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-        >
-          {submitting ? (
-            <>
-              <span className="spinner" /> Preparing
-            </>
-          ) : (
-            "Start run"
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={clearAll}
+                    disabled={submitting}
+                  >
+                    Clear all
+                  </button>
+                </div>
+              </div>
+              <ul
+                className={`filelist${useScroll ? " filelist--scroll" : ""}`}
+                aria-label="Selected images"
+              >
+                {files.map((item) => (
+                  <li key={item.id} className="filerow filerow--withthumb">
+                    <img
+                      src={item.previewUrl}
+                      alt=""
+                      className="filerow__thumb"
+                      loading="lazy"
+                    />
+                    <div className="filerow__text">
+                      <span className="filerow__name">{item.file.name}</span>
+                      <span className="filerow__meta">{formatBytes(item.file.size)}</span>
+                    </div>
+                    <span className="filerow__status">Ready</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${item.file.name}`}
+                      className="filerow__remove"
+                      onClick={() => removeFile(item.id)}
+                      disabled={submitting}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
-        </button>
-        {!canSubmit && !submitting && (
-          <span className="btn-row__caption muted">
-            {files.length === 0
-              ? "Add images to begin"
-              : ""}
-          </span>
-        )}
-      </div>
-    </section>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={PRE_CREATE_ACCEPTED_TYPES.join(",")}
+            multiple
+            className="dropzone__input"
+            onChange={(event) => {
+              if (event.target.files) addFiles(event.target.files);
+              event.target.value = "";
+            }}
+          />
+        </div>
+
+        {info && <p className="notice notice--quiet">{info}</p>}
+
+        {error && <p className="notice">{error}</p>}
+
+        <div className="card__section btn-row">
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
+            {submitting ? (
+              <>
+                <span className="spinner" /> Preparing
+              </>
+            ) : (
+              "Start run"
+            )}
+          </button>
+          {!canSubmit && !submitting && (
+            <span className="btn-row__caption muted">
+              {files.length === 0 ? "Add images to begin" : ""}
+            </span>
+          )}
+        </div>
+      </section>
+      <PastGenerations />
+    </>
   );
 }
 

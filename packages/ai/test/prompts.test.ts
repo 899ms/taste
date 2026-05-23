@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSynthesisPrompt } from "../src/prompts";
+import { buildSkillPrompt, buildSynthesisPrompt } from "../src/prompts";
 
 describe("buildSynthesisPrompt", () => {
   it("anonymizes source model labels and raw artifact frontmatter", () => {
@@ -47,5 +47,16 @@ describe("buildSynthesisPrompt", () => {
     expect(prompt).not.toContain("claude-opus-4-1");
     expect(prompt).not.toContain("Claude Opus 4 1");
     expect(prompt).not.toContain("proxyProvider");
+  });
+});
+
+describe("buildSkillPrompt", () => {
+  it("passes the requested skill name into the final skill prompt", () => {
+    const prompt = buildSkillPrompt("Keep buttons square.", "Product UI");
+
+    expect(prompt).toContain(
+      'Use this exact plain-text skill title when a title is needed: "Product UI"',
+    );
+    expect(prompt).toContain("# Product UI");
   });
 });

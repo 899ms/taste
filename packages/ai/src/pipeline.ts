@@ -1,6 +1,7 @@
 import {
+  buildSkillFrontmatter,
   DEFAULT_MAX_OUTPUT_TOKENS,
-  SKILL_FRONTMATTER,
+  normalizeSkillName,
 } from "./config";
 import {
   buildAnalysisPrompt,
@@ -82,19 +83,21 @@ export async function generateSkill(input: {
   credentials?: AiProviderCredentials | undefined;
   model: string;
   ruleSet: string;
+  skillName?: string | null | undefined;
   abortSignal?: AbortSignal | undefined;
 }): Promise<TextGenerationResult> {
+  const skillName = normalizeSkillName(input.skillName);
   const result = await generateProviderText({
     credentials: input.credentials,
     model: input.model,
-    prompt: buildSkillPrompt(input.ruleSet),
+    prompt: buildSkillPrompt(input.ruleSet, skillName),
     maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS.skill,
     abortSignal: input.abortSignal,
   });
   const body = result.text.trim();
   return {
     ...result,
-    text: `${SKILL_FRONTMATTER}${stripFrontmatter(body)}`,
+    text: `${buildSkillFrontmatter(skillName)}${stripFrontmatter(body)}`,
   };
 }
 

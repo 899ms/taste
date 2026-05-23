@@ -15,16 +15,26 @@ export const DEFAULT_MAX_OUTPUT_TOKENS = {
   skill: 12000,
 } as const;
 
-const SKILL_NAME = "taste-design";
+export const DEFAULT_SKILL_NAME = "taste";
 const SKILL_DESCRIPTION = "Concrete UI visual rule set for generating and reviewing restrained neutral interfaces. Use for tasks that need exact style constraints: plain sans-serif typography, pale neutral canvases, rounded surfaces, soft shadows, minimal borders, low-saturation color, sparse density, content-neutral placeholders, and anti-collapse guardrails.";
 
-export const SKILL_FRONTMATTER = [
-  "---",
-  `name: ${yamlScalar(SKILL_NAME)}`,
-  `description: ${yamlScalar(SKILL_DESCRIPTION)}`,
-  "---",
-  "",
-].join("\n");
+export const SKILL_FRONTMATTER = buildSkillFrontmatter();
+
+export function buildSkillFrontmatter(skillName?: string | null): string {
+  const name = normalizeSkillName(skillName);
+  return [
+    "---",
+    `name: ${yamlScalar(name)}`,
+    `description: ${yamlScalar(SKILL_DESCRIPTION)}`,
+    "---",
+    "",
+  ].join("\n");
+}
+
+export function normalizeSkillName(skillName?: string | null): string {
+  const normalized = skillName?.replace(/\s+/g, " ").trim();
+  return normalized || DEFAULT_SKILL_NAME;
+}
 
 function yamlScalar(value: string): string {
   return JSON.stringify(value);

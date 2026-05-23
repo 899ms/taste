@@ -15,6 +15,7 @@ export const runs = pgTable("runs", {
   id: uuid("id").defaultRandom().primaryKey(),
   status: text("status").notNull().default("uploading"),
   runSecretHash: text("run_secret_hash").notNull(),
+  skillName: text("skill_name"),
   credentialMode: text("credential_mode").notNull().default("openrouter"),
   encryptedCredentials: text("encrypted_credentials"),
   credentialsIv: text("credentials_iv"),

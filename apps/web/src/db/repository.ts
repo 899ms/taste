@@ -50,6 +50,7 @@ const activeRunStatuses: RunStatus[] = [
   "extracting_rules",
   "generating_skill",
 ];
+const maxSkillNameLength = 80;
 
 export class RunCanceledError extends Error {
   constructor(runId: string) {
@@ -191,6 +192,25 @@ export function decryptRunCredentials(
   }
 
   throw new Error("Run is missing AI provider credentials.");
+}
+
+export function normalizeRunSkillName(skillName?: string | null): string | null {
+  const normalized = skillName?.replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+  return normalized.slice(0, maxSkillNameLength);
+}
+
+export async function updateRunSkillName(runId: string, skillName?: string | null) {
+  const normalized = normalizeRunSkillName(skillName);
+  const updated = await db
+    .update(runs)
+    .set({
+      skillName: normalized,
+      updatedAt: new Date(),
+    })
+    .where(activeRunWhere(runId))
+    .returning({ id: runs.id, skillName: runs.skillName });
+  return updated[0] ?? null;
 }
 
 export async function purgeRunCredentials(runId: string) {
@@ -785,6 +805,7 @@ export async function statusPayload(runId: string) {
     id: run.id,
     status: run.status,
     currentStep: run.currentStep,
+    skillName: run.skillName,
     errorMessage: run.errorMessage,
     progressPercent: computeProgress(run),
     counts: {

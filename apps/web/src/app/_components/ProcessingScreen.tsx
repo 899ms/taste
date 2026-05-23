@@ -12,6 +12,7 @@ import {
   type RunEvent,
   type RunImage,
   type RunStatus,
+  updateRunSkillName,
 } from "../_lib/api";
 import {
   formatCount,
@@ -22,6 +23,7 @@ import {
 } from "../_lib/format";
 
 const POLL_INTERVAL_MS = 2000;
+const NAME_SAVE_DEBOUNCE_MS = 500;
 const MAX_VISIBLE_EVENTS = 8;
 const MAX_VISIBLE_THUMBS = 24;
 
@@ -42,12 +44,17 @@ export function ProcessingScreen({
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [pollError, setPollError] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  const [skillName, setSkillName] = useState(initialStatus?.skillName ?? "");
+  const [nameSaveState, setNameSaveState] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle",
+  );
   const [imageMap, setImageMap] = useState<Map<string, RunImage>>(() => new Map());
   // synthesizedIds is ordered newest-first so the most recent thumbnail
   // appears on the leading edge of the cluster.
   const [synthesizedIds, setSynthesizedIds] = useState<string[]>([]);
   const lastEventIdRef = useRef(0);
   const completionFiredRef = useRef(false);
+  const lastSavedSkillNameRef = useRef(initialStatus?.skillName ?? "");
   const imageMapRef = useRef(imageMap);
   imageMapRef.current = imageMap;
 
@@ -126,6 +133,35 @@ export function ProcessingScreen({
     return () => window.clearInterval(id);
   }, [paused, status, tick]);
 
+  useEffect(() => {
+    const serverName = status?.skillName ?? "";
+    if (skillName === "" && lastSavedSkillNameRef.current === "" && serverName) {
+      lastSavedSkillNameRef.current = serverName;
+      setSkillName(serverName);
+    }
+  }, [skillName, status?.skillName]);
+
+  useEffect(() => {
+    if (!status || isTerminal(status.status)) return;
+    const normalized = normalizeSkillNameInput(skillName);
+    if (normalized === lastSavedSkillNameRef.current) return;
+    setNameSaveState("idle");
+    const id = window.setTimeout(() => {
+      void (async () => {
+        setNameSaveState("saving");
+        try {
+          const saved = await updateRunSkillName(creds, normalized || null);
+          lastSavedSkillNameRef.current = saved ?? "";
+          setNameSaveState("saved");
+          window.setTimeout(() => setNameSaveState("idle"), 1600);
+        } catch {
+          if (!completionFiredRef.current) setNameSaveState("error");
+        }
+      })();
+    }, NAME_SAVE_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [creds, skillName, status?.status]);
+
   // Tab title mirrors progress so a backgrounded tab can be glanced at.
   useEffect(() => {
     if (!status) {
@@ -175,6 +211,22 @@ export function ProcessingScreen({
             style={{ width: failed ? "0%" : `${Math.max(2, progress)}%` }}
           />
         </div>
+      </div>
+
+      <div className="card__section field">
+        <label className="field__label" htmlFor="skill-name">
+          Skill name
+        </label>
+        <input
+          id="skill-name"
+          className="input"
+          value={skillName}
+          maxLength={80}
+          placeholder="taste"
+          disabled={failed || isComplete}
+          onChange={(event) => setSkillName(event.target.value)}
+        />
+        <p className="field__hint">{skillNameHint(nameSaveState)}</p>
       </div>
 
       <div className="stats">
@@ -313,6 +365,17 @@ function StatRow({ label, value }: { label: string; value: string }) {
       <span className="stat__value">{value}</span>
     </div>
   );
+}
+
+function normalizeSkillNameInput(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
+function skillNameHint(state: "idle" | "saving" | "saved" | "error"): string {
+  if (state === "saving") return "Saving";
+  if (state === "saved") return "Saved";
+  if (state === "error") return "Could not save name";
+  return "Defaults to taste if blank";
 }
 
 function ThumbCluster({

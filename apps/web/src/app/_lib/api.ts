@@ -51,6 +51,7 @@ export type RunStatus = {
   id: string;
   status: RunStatusName;
   currentStep: string;
+  skillName: string | null;
   errorMessage: string | null;
   progressPercent: number;
   counts: {
@@ -242,6 +243,18 @@ export async function uploadImageThroughServer(
 
 export async function fetchRunStatus(creds: RunCredentials): Promise<RunStatus> {
   return request<RunStatus>(`/api/runs/${creds.runId}`, { runSecret: creds.runSecret });
+}
+
+export async function updateRunSkillName(
+  creds: RunCredentials,
+  skillName: string | null,
+): Promise<string | null> {
+  const data = await request<{ skillName: string | null }>(`/api/runs/${creds.runId}`, {
+    method: "PATCH",
+    runSecret: creds.runSecret,
+    body: JSON.stringify({ skillName }),
+  });
+  return data.skillName;
 }
 
 export async function fetchRunEvents(

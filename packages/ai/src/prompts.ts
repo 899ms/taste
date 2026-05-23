@@ -246,10 +246,12 @@ A concrete checklist the generator must pass before finishing.
 `;
 }
 
-export function buildSkillPrompt(ruleSet: string): string {
+export function buildSkillPrompt(ruleSet: string, skillName = "taste"): string {
   return `Convert this concrete visual rule set into a platform-agnostic design skill.
 
 Keep it dictator-driven and specific. Do not soften it into broad aesthetic prose. Length is acceptable. The target model should not infer the aesthetic from vague words.
+
+Use this exact plain-text skill title when a title is needed: ${JSON.stringify(skillName)}
 
 Rules:
 - Preserve concrete visual constraints.
@@ -264,7 +266,7 @@ Rules:
 
 Required structure:
 
-# Taste Skill
+# ${skillName}
 
 ## Use this skill when
 

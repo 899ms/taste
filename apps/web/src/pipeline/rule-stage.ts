@@ -316,11 +316,13 @@ export async function generateFinalSkill(
   await throwIfRunCanceled(runId);
   const latestRuleSet = await getArtifact({ runId, type: "rule_set" });
   if (!latestRuleSet?.content) throw new Error("Final rule set is missing");
+  const run = await requireRun(runId);
   const abort = createRunAbortWatcher(runId);
   const skill = await generateSkillArtifact({
     credentials,
     model: env().SKILL_MODEL,
     ruleSet: latestRuleSet.content,
+    skillName: run.skillName,
     abortSignal: abort.signal,
   }).finally(() => abort.dispose());
   await throwIfRunCanceled(runId);
@@ -334,6 +336,7 @@ export async function generateFinalSkill(
     content: skill.text,
     bytes: skillStored.bytes,
     metadata: {
+      skillName: run.skillName ?? "taste",
       usage: skill.usage,
       responseModel: skill.model,
     },

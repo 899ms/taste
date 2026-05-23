@@ -10,6 +10,7 @@ import {
   fetchCredentialStatus,
   type CredentialStatus,
 } from "../_lib/api";
+import { PastGenerations } from "./PastGenerations";
 
 type CredentialScreenProps = {
   initialStatus: CredentialStatus;
@@ -104,90 +105,93 @@ export function CredentialScreen({
   }
 
   return (
-    <section className="card card--lift">
-      <h1 className="card__title">Bring your own model access.</h1>
-      <p className="card__sub">
-        This demo requires two models. The simplest way is to use OpenRouter. Your API key never
-        touches this device — it stays in an encrypted server session.
-      </p>
+    <>
+      <section className="card card--lift">
+        <h1 className="card__title">Bring your own model access.</h1>
+        <p className="card__sub">
+          This app requires two models. The simplest way is to use OpenRouter. Your API key never
+          touches this device — it stays in an encrypted server session.
+        </p>
 
-      <div className="card__section btn-row">
-        <button
-          type="button"
-          className="btn btn--primary"
-          onClick={() => void connectOpenRouter()}
-          disabled={busy !== null}
+        <div className="card__section btn-row">
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => void connectOpenRouter()}
+            disabled={busy !== null}
+          >
+            {busy === "openrouter" ? (
+              <>
+                <span className="spinner" /> Redirecting
+              </>
+            ) : (
+              <>
+                <OpenRouterGlyph /> Connect OpenRouter
+              </>
+            )}
+          </button>
+        </div>
+
+        {error && <p className="notice">{error}</p>}
+
+        <div className="card__section card__section--tight">
+          <button
+            type="button"
+            className="disclose"
+            aria-expanded={advancedOpen}
+            aria-controls="advanced-panel"
+            onClick={() => setAdvancedOpen((open) => !open)}
+          >
+            <span>Use direct provider keys instead</span>
+            <ChevronGlyph />
+          </button>
+        </div>
+
+        <div
+          id="advanced-panel"
+          role="region"
+          aria-label="Direct provider keys"
+          className={`accordion${advancedOpen ? " accordion--open" : ""}`}
+          aria-hidden={!advancedOpen}
         >
-          {busy === "openrouter" ? (
-            <>
-              <span className="spinner" /> Redirecting
-            </>
-          ) : (
-            <>
-              <OpenRouterGlyph /> Connect OpenRouter
-            </>
-          )}
-        </button>
-      </div>
-
-      {error && <p className="notice">{error}</p>}
-
-      <div className="card__section card__section--tight">
-        <button
-          type="button"
-          className="disclose"
-          aria-expanded={advancedOpen}
-          aria-controls="advanced-panel"
-          onClick={() => setAdvancedOpen((open) => !open)}
-        >
-          <span>Use direct provider keys instead</span>
-          <ChevronGlyph />
-        </button>
-      </div>
-
-      <div
-        id="advanced-panel"
-        role="region"
-        aria-label="Direct provider keys"
-        className={`accordion${advancedOpen ? " accordion--open" : ""}`}
-        aria-hidden={!advancedOpen}
-      >
-        <div className="accordion__inner">
-          <div className="accordion__content">
-            <ManualKeyForm
-              // Key on advancedOpen so the form remounts on each expand,
-              // clearing any previously typed (but unsubmitted) secret and
-              // re-firing the autofocus into the first input.
-              key={advancedOpen ? "open" : "closed"}
-              disabled={busy !== null}
-              fields={[
-                {
-                  id: "openai-key",
-                  label: "OpenAI API key",
-                  placeholder: "sk-...",
-                  value: openaiKey,
-                  onChange: setOpenaiKey,
-                  autoFocus: true,
-                  required: true,
-                },
-                {
-                  id: "anthropic-key",
-                  label: "Anthropic API key",
-                  placeholder: "sk-ant-...",
-                  value: anthropicKey,
-                  onChange: setAnthropicKey,
-                  required: true,
-                },
-              ]}
-              submitLabel="Use these keys"
-              submitting={busy === "direct"}
-              onSubmit={() => void submitDirect()}
-              hint="Both keys are required. They are stored server-side for this session and never displayed back."
-            />
+          <div className="accordion__inner">
+            <div className="accordion__content">
+              <ManualKeyForm
+                // Key on advancedOpen so the form remounts on each expand,
+                // clearing any previously typed (but unsubmitted) secret and
+                // re-firing the autofocus into the first input.
+                key={advancedOpen ? "open" : "closed"}
+                disabled={busy !== null}
+                fields={[
+                  {
+                    id: "openai-key",
+                    label: "OpenAI API key",
+                    placeholder: "sk-...",
+                    value: openaiKey,
+                    onChange: setOpenaiKey,
+                    autoFocus: true,
+                    required: true,
+                  },
+                  {
+                    id: "anthropic-key",
+                    label: "Anthropic API key",
+                    placeholder: "sk-ant-...",
+                    value: anthropicKey,
+                    onChange: setAnthropicKey,
+                    required: true,
+                  },
+                ]}
+                submitLabel="Use these keys"
+                submitting={busy === "direct"}
+                onSubmit={() => void submitDirect()}
+                hint="Both keys are required. They are stored server-side for this session and never displayed back."
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+      <PastGenerations />
+    </>
   );
 }
 

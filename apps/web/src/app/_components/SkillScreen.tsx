@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { describeError, fetchSkill, type RunCredentials } from "../_lib/api";
+import { saveStoredSkillGeneration } from "../_lib/storage";
 
 type SkillScreenProps = {
   creds: RunCredentials;
@@ -30,6 +31,11 @@ export function SkillScreen({ creds, onStartAnother }: SkillScreenProps) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!content) return;
+    saveStoredSkillGeneration({ runId: creds.runId, content });
+  }, [content, creds.runId]);
 
   const handleCopy = useCallback(async () => {
     if (!content) return;
