@@ -19,11 +19,19 @@ type CredentialScreenProps = {
 
 const SOURCE_URL = "https://github.com/jaytel0/taste";
 
-// Single instruction blob the visitor hands to their coding agent. Written
-// as a natural-language directive (not a command-line snippet) because the
-// audience is "paste this into Claude/Cursor/Codex", not a shell. We name
-// the repo URL explicitly so the agent doesn't have to guess.
-const CLONE_PROMPT = `Clone ${SOURCE_URL} and get it set up locally so I can start running the pipeline and creating a skill. Let me know what information and API keys you need from me.`;
+// Single instruction blob the visitor hands to their coding agent. Three
+// sentences, each doing one job:
+//   1. Orient — "read the README" loads project context for free instead
+//      of us re-explaining the pipeline here.
+//   2. Concrete setup commands so the agent doesn't have to inspect
+//      package.json to guess the install dance.
+//   3. Force a human checkpoint on the only thing the agent can't infer:
+//      which provider keys the user has. All three accepted env-var names
+//      are spelled out so the agent writes .env.local correctly first try,
+//      and "(Vercel)" disambiguates AI_GATEWAY_API_KEY for the human who'll
+//      be hearing the question. Tweak this string with care — each clause
+//      is load-bearing.
+const CLONE_PROMPT = `Clone ${SOURCE_URL}, read the README, and set up the local pipeline. Run \`npm install\` and \`cp .env.example .env.local\`, then ask me which I have and write it into \`.env.local\`: \`OPENAI_API_KEY\` + \`ANTHROPIC_API_KEY\`, \`OPENROUTER_API_KEY\`, or \`AI_GATEWAY_API_KEY\` (Vercel). Then run \`npm run taste\` on images I'll drop in \`reference-images/\`.`;
 
 export function CredentialScreen({
   initialStatus,
