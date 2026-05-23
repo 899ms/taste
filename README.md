@@ -87,10 +87,6 @@ generated Taste skill from `pipeline/taste/04-skill/SKILL.md`. Each agent was
 given the same prompt within each test and asked to produce a standalone HTML
 file.
 
-Each comparison is stitched left to right: base model, Anthropic's
-`frontend-design` skill, and Taste skill. Source screenshots were captured at
-`1400x900`. The prompt and model used for each run are noted in the image.
-
 ### Test 01: Opus 4.7
 
 Prompt: `Design a dashboard. Build in an HTML file. Ask no questions.`
