@@ -8,6 +8,7 @@ import {
   completeUploadedImage,
   describeError,
   startRun,
+  uploadImageThroughServer,
   type RunCredentials,
 } from "../_lib/api";
 import { formatBytes } from "../_lib/format";
@@ -15,6 +16,8 @@ import { uploadPathname } from "@/uploads/path";
 
 const UPLOAD_CONCURRENCY = 12;
 const FILELIST_SCROLL_THRESHOLD = 6;
+const SERVER_UPLOAD_BYTES_CAP = 4 * 1024 * 1024;
+const UPLOAD_TIMEOUT_MS = 2 * 60 * 1000;
 
 type UploadState = "pending" | "uploading" | "done" | "error";
 
@@ -44,6 +47,7 @@ export function UploadScreen({ creds, files, onComplete, onAbandon }: UploadScre
   const startedRef = useRef(false);
   const uploadingRef = useRef(false);
   const abortedRef = useRef(false);
+  const activeUploadsRef = useRef<Set<AbortController>>(new Set());
 
   const counts = useMemo(() => {
     let done = 0;
@@ -65,33 +69,45 @@ export function UploadScreen({ creds, files, onComplete, onAbandon }: UploadScre
     async (item: FileItem): Promise<boolean> => {
       if (abortedRef.current) return false;
       updateItem(item.uploadOrder, { state: "uploading", error: undefined });
+      const controller = new AbortController();
+      activeUploadsRef.current.add(controller);
+      const timeout = window.setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
       try {
-        const blob = await upload(
-          uploadPathname(creds.runId, item.uploadOrder, item.file.name),
-          item.file,
-          {
-            access: "private",
-            handleUploadUrl: "/api/uploads",
-            contentType: item.file.type,
-            clientPayload: JSON.stringify({
-              runId: creds.runId,
-              runSecret: creds.runSecret,
-              uploadOrder: item.uploadOrder,
-              fileName: item.file.name,
+        if (item.file.size <= SERVER_UPLOAD_BYTES_CAP) {
+          await uploadImageThroughServer(creds, {
+            uploadOrder: item.uploadOrder,
+            file: item.file,
+            signal: controller.signal,
+          });
+        } else {
+          const blob = await upload(
+            uploadPathname(creds.runId, item.uploadOrder, item.file.name),
+            item.file,
+            {
+              access: "private",
+              handleUploadUrl: "/api/uploads",
               contentType: item.file.type,
-              size: item.file.size,
-            }),
-          },
-        );
-        await completeUploadedImage(creds, {
-          uploadOrder: item.uploadOrder,
-          basename: item.file.name,
-          blobUrl: blob.url,
-          downloadUrl: "downloadUrl" in blob ? blob.downloadUrl : null,
-          pathname: blob.pathname,
-          contentType: blob.contentType ?? item.file.type,
-          bytes: item.file.size,
-        });
+              abortSignal: controller.signal,
+              clientPayload: JSON.stringify({
+                runId: creds.runId,
+                runSecret: creds.runSecret,
+                uploadOrder: item.uploadOrder,
+                fileName: item.file.name,
+                contentType: item.file.type,
+                size: item.file.size,
+              }),
+            },
+          );
+          await completeUploadedImage(creds, {
+            uploadOrder: item.uploadOrder,
+            basename: item.file.name,
+            blobUrl: blob.url,
+            downloadUrl: "downloadUrl" in blob ? blob.downloadUrl : null,
+            pathname: blob.pathname,
+            contentType: blob.contentType ?? item.file.type,
+            bytes: item.file.size,
+          });
+        }
         if (abortedRef.current) return false;
         updateItem(item.uploadOrder, { state: "done" });
         return true;
@@ -102,6 +118,9 @@ export function UploadScreen({ creds, files, onComplete, onAbandon }: UploadScre
           error: describeError(err, "Upload failed for this image."),
         });
         return false;
+      } finally {
+        window.clearTimeout(timeout);
+        activeUploadsRef.current.delete(controller);
       }
     },
     [creds.runId, creds.runSecret, updateItem],
@@ -141,6 +160,7 @@ export function UploadScreen({ creds, files, onComplete, onAbandon }: UploadScre
     if (canceling) return;
     setCanceling(true);
     abortedRef.current = true;
+    activeUploadsRef.current.forEach((controller) => controller.abort());
     try {
       await cancelRun(creds);
     } catch {

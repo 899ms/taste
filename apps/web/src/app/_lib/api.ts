@@ -92,6 +92,12 @@ export type CompleteUploadedImageInput = {
   bytes: number;
 };
 
+export type ServerUploadImageInput = {
+  uploadOrder: number;
+  file: File;
+  signal?: AbortSignal;
+};
+
 export type CredentialStatus = {
   connected: boolean;
   mode: "openrouter" | "direct" | null;
@@ -127,7 +133,9 @@ async function request<T>(url: string, init: RequestOptions<T> = {}): Promise<T>
     ...(headers as Record<string, string> | undefined),
   };
   if (runSecret) merged["x-run-secret"] = runSecret;
-  if (rest.body && !merged["Content-Type"]) merged["Content-Type"] = "application/json";
+  if (rest.body && !(rest.body instanceof FormData) && !merged["Content-Type"]) {
+    merged["Content-Type"] = "application/json";
+  }
   const response = await fetch(url, { ...rest, headers: merged });
   if (!response.ok) {
     throw new ApiError(response.status, await parseError(response));
@@ -214,6 +222,22 @@ export async function completeUploadedImage(
     runSecret: creds.runSecret,
     body: JSON.stringify(input),
   });
+}
+
+export async function uploadImageThroughServer(
+  creds: RunCredentials,
+  input: ServerUploadImageInput,
+): Promise<void> {
+  const form = new FormData();
+  form.append("uploadOrder", String(input.uploadOrder));
+  form.append("file", input.file);
+  const init: RequestOptions<void> = {
+    method: "POST",
+    runSecret: creds.runSecret,
+    body: form,
+  };
+  if (input.signal) init.signal = input.signal;
+  await request(`/api/runs/${creds.runId}/images/upload`, init);
 }
 
 export async function fetchRunStatus(creds: RunCredentials): Promise<RunStatus> {
