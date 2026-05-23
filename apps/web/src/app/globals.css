@@ -1,14 +1,14 @@
 :root {
-  --canvas: #faf9f6;
-  --canvas-soft: #f4f3ef;
+  --canvas: #f7f8fa;
+  --canvas-soft: #eff1f5;
   --surface: #ffffff;
-  --surface-2: #f2f3f1;
-  --surface-3: #eeeeec;
-  --divider: #e6e6e3;
-  --divider-strong: #dcdcd8;
-  --text: #0e0e0e;
-  --text-2: #5e5e5a;
-  --text-3: #8a8a86;
+  --surface-2: #f0f2f5;
+  --surface-3: #e9edf2;
+  --divider: #e2e6ec;
+  --divider-strong: #d6dbe3;
+  --text: #0e1014;
+  --text-2: #555a63;
+  --text-3: #868d97;
   --accent: #2d7a4a;
   --accent-soft: #e7efe9;
   --danger: #b54330;
@@ -394,10 +394,8 @@ a {
 }
 
 .field__label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--text-2);
 }
 
@@ -976,10 +974,8 @@ a {
 }
 
 .events__title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--text-3);
   margin: 0 0 14px;
 }
@@ -1011,10 +1007,8 @@ a {
 }
 
 .thumbcluster__title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--text-3);
   margin: 0 0 16px;
 }
@@ -1108,10 +1102,8 @@ a {
 
 .past__title {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--text-3);
 }
 

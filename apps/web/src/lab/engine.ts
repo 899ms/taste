@@ -576,7 +576,7 @@ function mockHtml(input: {
     .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
     .metric, .panel { background: #fff; border: 1px solid #e7e7e2; border-radius: ${radius}; box-shadow: 0 8px 24px rgba(20,20,16,.04); }
     .metric { min-height: ${density}; padding: 13px 14px; }
-    .label { color: #73736d; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    .label { color: #73736d; font-size: 12px; }
     .value { margin-top: 7px; font-size: 24px; font-weight: 650; }
     .delta { color: ${palette.accent}; font-size: 12px; margin-top: 2px; }
     .grid { display: grid; grid-template-columns: 1.4fr .75fr; gap: 12px; }
