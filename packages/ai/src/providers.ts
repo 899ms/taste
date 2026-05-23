@@ -5,6 +5,20 @@ import { createGateway, generateText, type LanguageModel } from "ai";
 
 import type { AiProviderCredentials, ImageInput, TextGenerationResult } from "./types";
 
+const lowReasoningProviderOptions = {
+  openai: {
+    reasoningEffort: "low",
+  },
+  anthropic: {
+    effort: "low",
+  },
+  openrouter: {
+    reasoning: {
+      effort: "low",
+    },
+  },
+} as const;
+
 export async function generateProviderText(input: {
   credentials?: AiProviderCredentials | undefined;
   model: string;
@@ -17,6 +31,7 @@ export async function generateProviderText(input: {
       model: createLanguageModel(input.credentials, input.model),
       prompt: input.prompt,
       maxOutputTokens: input.maxOutputTokens,
+      providerOptions: lowReasoningProviderOptions,
       maxRetries: 2,
       timeout: { totalMs: 180_000 },
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -50,6 +65,7 @@ export async function generateProviderVisionText(input: {
         },
       ],
       maxOutputTokens: input.maxOutputTokens,
+      providerOptions: lowReasoningProviderOptions,
       maxRetries: 2,
       timeout: { totalMs: 180_000 },
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
