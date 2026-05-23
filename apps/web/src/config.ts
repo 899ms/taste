@@ -18,9 +18,9 @@ const envSchema = z.object({
   CREDENTIAL_SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24),
   INTERNAL_API_SECRET: z.string().min(32).optional(),
   CRON_SECRET: z.string().min(16).optional(),
-  WORKFLOW_DRAIN_CONCURRENCY: z.coerce.number().int().positive().default(8),
-  WORKFLOW_DRAIN_MAX_JOBS: z.coerce.number().int().positive().default(24),
-  WORKFLOW_JOB_LEASE_SECONDS: z.coerce.number().int().positive().default(600),
+  WORKFLOW_DRAIN_CONCURRENCY: z.coerce.number().int().positive().default(32),
+  WORKFLOW_DRAIN_MAX_JOBS: z.coerce.number().int().positive().default(120),
+  WORKFLOW_JOB_LEASE_SECONDS: z.coerce.number().int().positive().default(900),
   WORKFLOW_JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(6),
   ANALYSIS_MODELS: z
     .string()
