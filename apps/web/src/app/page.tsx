@@ -252,6 +252,14 @@ function emptyCredentialStatus(): CredentialStatus {
 }
 
 function BootCard() {
+  // Avoid a sub-second flash of "Restoring session" on fast boots — only
+  // surface it if the credential check / run resume is genuinely slow.
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setVisible(true), 450);
+    return () => window.clearTimeout(id);
+  }, []);
+  if (!visible) return null;
   return (
     <section className="card">
       <h1 className="card__title">

@@ -33,6 +33,17 @@
   --font-mono:
     ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
     monospace;
+
+  /* Motion system ---------------------------------------------------- */
+  /* One spring curve used across the app so every scale / translate share
+     the same physics. ~8% overshoot then settle — readable as "spring"
+     without crossing into toy bounce. Applied to entrances and presses.
+     Not used for widths (progress bar must read monotonic), heights
+     (accordion intrinsic-height transitions hate overshoot), or rotations
+     (chevron springs look glitchy). Those keep iOS or ease-out curves. */
+  --ease-spring: cubic-bezier(0.2, 1.08, 0.4, 1);
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 * {
@@ -333,7 +344,10 @@ a {
   border-radius: var(--radius-card);
   padding: 44px;
   box-shadow: var(--shadow-card);
-  animation: card-enter 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* 360ms gives the spring overshoot time to read; under ~320ms it just
+     looks like a delayed start. translateY bumped 4 → 8 so the settle is
+     felt, not just measured. */
+  animation: card-enter 360ms var(--ease-spring) both;
 }
 
 .card--lift {
@@ -354,7 +368,7 @@ a {
 @keyframes card-enter {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -476,8 +490,44 @@ a {
   border-radius: var(--radius-pill);
   font-size: 14px;
   font-weight: 500;
-  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+  /* Press compresses in 60ms (snappy linear ease-out, set on :active). On
+     release :active is removed and this base transition takes over — 240ms
+     spring curve gives a subtle scale-overshoot past 1.0 before settling.
+     That tiny pop is what separates a tactile button from a flat one. */
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease,
+    transform 240ms var(--ease-spring);
   white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  /* Override the spring on press-down — compression should feel immediate
+     and linear, the spring only belongs on the release back to rest. */
+  transition: transform 60ms ease-out;
+}
+
+/* Same physical-press treatment for the smaller tap targets so the entire
+   surface responds consistently. Slightly tighter scale on the smaller
+   shapes — 0.94 reads at 28px the way 0.97 reads at 44px. Excludes the
+   .disclose trigger: it's a quiet text-with-chevron link, not a tactile
+   button — pressing should feel weightless. */
+.filerow__remove:active:not(:disabled),
+.segmented__btn:not(.segmented__btn--active):active,
+.input-wrap__toggle:active:not(:disabled) {
+  transform: scale(0.94);
+  transition: transform 60ms ease-out;
+}
+
+.filerow__remove,
+.input-wrap__toggle,
+.segmented__btn {
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    transform 240ms var(--ease-spring);
 }
 
 .btn--sm {
@@ -567,6 +617,29 @@ a {
   background: var(--surface-3);
 }
 
+/* While a file is being dragged over the zone, the + glyph pivots toward
+   an × pose. Subtle semantic flourish — the icon literally says "drop
+   here" only when something is droppable. Spring curve so the rotation
+   overshoots slightly and settles — reads as "the icon caught the drag"
+   rather than a mechanical flip. 360ms gives the spring room to breathe. */
+.dropzone__glyph {
+  transition: transform 360ms var(--ease-spring);
+  will-change: transform;
+}
+
+.dropzone--active .dropzone__glyph {
+  transform: scale(1.08) rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropzone__glyph {
+    transition: none;
+  }
+  .dropzone--active .dropzone__glyph {
+    transform: none;
+  }
+}
+
 .dropzone__primary {
   font-size: 15px;
   font-weight: 500;
@@ -613,7 +686,7 @@ a {
   padding: 0;
   margin: 0;
   transition: background 160ms ease, box-shadow 160ms ease;
-  animation: filepanel-enter 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: filepanel-enter 360ms var(--ease-spring) both;
 }
 
 /* Drag-active highlight bleeds 16px outside the content rail on each side so
@@ -643,7 +716,7 @@ a {
 @keyframes filepanel-enter {
   from {
     opacity: 0;
-    transform: translateY(2px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -818,10 +891,43 @@ a {
 }
 
 .progress__fill {
+  position: relative;
   height: 100%;
   background: var(--accent);
   border-radius: var(--radius-pill);
+  overflow: hidden;
   transition: width 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Faint diagonal shimmer travels across the in-progress fill so a long
+   step (e.g. 60% for 40s of synthesis) still reads as alive without
+   competing with the live status pill. Only transform animates — the
+   gradient lives on a pseudo-element so we never repaint the bar itself.
+   Suppressed on the idle/complete states because they aren't "working". */
+.progress__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: progress-shimmer 2.6s linear infinite;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.progress__fill--complete,
+.progress__fill--idle {
+  /* No shimmer in terminal / pre-start states — the bar isn't doing work. */
+}
+
+.progress__fill--complete::after,
+.progress__fill--idle::after {
+  display: none;
 }
 
 .progress__fill--complete {
@@ -830,6 +936,18 @@ a {
 
 .progress__fill--idle {
   background: var(--text);
+}
+
+@keyframes progress-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress__fill::after {
+    animation: none;
+    display: none;
+  }
 }
 
 .metric {
@@ -1033,9 +1151,11 @@ a {
     0 1px 2px rgba(15, 15, 15, 0.04),
     0 6px 18px rgba(15, 15, 15, 0.08);
   /* Each item gets its own --tilt value set inline; we animate from a
-     compressed starting state into the final tilt. */
+     compressed starting state into the final tilt. With the spring curve,
+     the scale overshoots ~3% past 1.0 and settles — the cluster reads as
+     thumbs "landing" into their tilted positions rather than appearing. */
   transform: rotate(var(--tilt, 0deg));
-  animation: thumb-enter 480ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: thumb-enter 580ms var(--ease-spring) both;
   will-change: transform, opacity;
 }
 
@@ -1219,18 +1339,50 @@ a {
 }
 
 .accordion__content {
-  opacity: 0;
+  /* Container no longer fades — it just lifts subtly into place while its
+     children cascade in (see .manualform stagger below). One opacity
+     timeline per element keeps the math clean: parent stays at 1, children
+     handle the visible reveal. */
   transform: translateY(-4px);
-  transition:
-    opacity 240ms cubic-bezier(0.32, 0.72, 0, 1),
-    transform 360ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 280ms var(--ease-spring);
   /* Visual spacing between the disclosure trigger and the form. */
   padding-top: 14px;
 }
 
 .accordion--open .accordion__content {
-  opacity: 1;
   transform: translateY(0);
+}
+
+/* Staggered child reveal when the accordion opens. Each direct child of the
+   manual key form fades + lifts in 30ms apart, so the form orchestrates
+   itself as the height expands rather than appearing as one block. Total
+   cascade is ~280ms (last child: 120ms delay + 160ms animation), keeping
+   the whole reveal within Emil's 300ms ceiling for context-switch motion.
+
+   Close is unstyled by design: when .accordion--open is removed, the
+   selectors below no longer match, children snap to their default state,
+   and the grid-template-rows collapse clips them. Matches iOS Settings. */
+.accordion--open .manualform > * {
+  animation: accordion-stagger 160ms var(--ease-spring) both;
+}
+
+.accordion--open .manualform > *:nth-child(1) { animation-delay: 30ms; }
+.accordion--open .manualform > *:nth-child(2) { animation-delay: 60ms; }
+.accordion--open .manualform > *:nth-child(3) { animation-delay: 90ms; }
+.accordion--open .manualform > *:nth-child(4) { animation-delay: 120ms; }
+/* Safe degradation if the form ever grows past 4 children — extra rows just
+   animate at 120ms delay alongside the 4th, never breaking the ceiling. */
+.accordion--open .manualform > *:nth-child(n + 5) { animation-delay: 120ms; }
+
+@keyframes accordion-stagger {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1239,11 +1391,16 @@ a {
   .disclose svg {
     transition: none;
   }
-  /* Keep opacity as a graceful fallback per Emil's reduced-motion rule:
-     soften the change rather than killing it entirely. */
   .accordion__content {
-    transition: opacity 120ms linear;
     transform: none;
+  }
+  /* Under reduced motion the global rule already collapses animation to
+     0.01ms, but the staggered delays would still create a flicker cascade.
+     Removing the animation entirely lets the children appear instantly
+     when the accordion expands — the height transition alone signals the
+     state change, per polish-dont-remove-all. */
+  .accordion--open .manualform > * {
+    animation: none;
   }
 }
 
