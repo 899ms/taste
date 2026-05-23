@@ -34,6 +34,7 @@ export function Shell({
           <span className="shell__credit" aria-label="Designed with the Taste Skill, version 1">
             Designed with Taste Skill V1
           </span>
+          <span className="shell__divider" aria-hidden />
           <a
             className="shell__source"
             href={SOURCE_URL}

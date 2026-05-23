@@ -184,6 +184,23 @@ a {
   min-width: 0;
 }
 
+.shell__divider {
+  /* Hairline separator between the Taste Skill credit and the source link.
+     1px wide on standard displays, sub-pixel on retina via 0.5 opacity bump. */
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: var(--divider-strong);
+  opacity: 0.7;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 520px) {
+  .shell__divider {
+    display: none;
+  }
+}
+
 .shell__credit {
   /* Quiet nod that this site's frontend was designed with the same
      Taste Skill it lets you build. Sits one step below the source link
