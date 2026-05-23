@@ -88,7 +88,8 @@ export async function drainWorkflow(input: {
   let completed = 0;
   let failed = 0;
 
-  await mapConcurrent(Array.from({ length: maxJobs }), concurrency, async () => {
+  const jobSlots = workflowDrainSlots(maxJobs);
+  await mapConcurrent(jobSlots, concurrency, async () => {
     if (claimed >= maxJobs) return;
     const leaseUntil = new Date(Date.now() + env().WORKFLOW_JOB_LEASE_SECONDS * 1000);
     const job = await claimNextWorkflowJob({ workerId, leaseUntil });
@@ -110,6 +111,10 @@ export async function drainWorkflow(input: {
     failed,
     hasMore: await hasRunnableWorkflowJobs(),
   };
+}
+
+export function workflowDrainSlots(maxJobs: number): number[] {
+  return Array.from({ length: maxJobs }, (_, index) => index);
 }
 
 export async function kickWorkflowDrain(origin: string | null) {
