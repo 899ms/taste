@@ -22,7 +22,7 @@ runs/{runId}/04-skill/SKILL.md
 
 ## Current Production Process
 
-1. Upload up to 100 reference images.
+1. Upload up to 20 reference images.
 2. Index uploaded images, dedupe exact duplicates, and assign stable image ids.
 3. For each active image, run the configured raw analysis models in parallel.
 4. As soon as an image's raw analyses finish, synthesize its canonical note
@@ -43,7 +43,7 @@ runs/{runId}/04-skill/SKILL.md
 The app defaults are speed-first with bounded safety:
 
 ```text
-MAX_IMAGES_PER_RUN=100
+MAX_IMAGES_PER_RUN=20
 ANALYSIS_MODELS=openai/gpt-5.5,anthropic/claude-sonnet-4-6
 SYNTHESIS_MODEL=openai/gpt-5.5
 RULE_MODEL=openai/gpt-5.5

@@ -39,6 +39,7 @@ export type RunStatus =
   | "canceled";
 
 export type WorkflowJobStatus = "queued" | "running" | "retrying" | "complete" | "failed" | "canceled";
+type TerminalRunStatus = Extract<RunStatus, "complete" | "failed" | "canceled">;
 
 const terminalRunStatuses: RunStatus[] = ["complete", "failed", "canceled"];
 const activeRunStatuses: RunStatus[] = [
@@ -77,6 +78,16 @@ export class RunCanceledError extends Error {
 
 export function isRunCanceledError(error: unknown): error is RunCanceledError {
   return error instanceof RunCanceledError;
+}
+
+function isTerminalRunStatus(status: string): status is TerminalRunStatus {
+  return terminalRunStatuses.includes(status as RunStatus);
+}
+
+function workflowJobStatusForTerminalRun(status: TerminalRunStatus): WorkflowJobStatus {
+  if (status === "complete") return "complete";
+  if (status === "failed") return "failed";
+  return "canceled";
 }
 
 function activeRunWhere(runId: string) {
@@ -646,8 +657,19 @@ export async function claimNextWorkflowJob(input: {
   return null;
 }
 
-export async function completeWorkflowJob(jobId: string) {
-  await db
+export async function completeWorkflowJob(job: Pick<WorkflowJob, "id" | "runId">): Promise<boolean> {
+  const run = await getRun(job.runId);
+  if (!run) return false;
+
+  if (isTerminalRunStatus(run.status)) {
+    const status = await settleWorkflowJobForTerminalRun({
+      jobId: job.id,
+      runStatus: run.status,
+    });
+    return status === "complete";
+  }
+
+  const [updated] = await db
     .update(workflowJobs)
     .set({
       status: "complete",
@@ -656,13 +678,31 @@ export async function completeWorkflowJob(jobId: string) {
       completedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(workflowJobs.id, jobId));
+    .where(
+      and(
+        eq(workflowJobs.id, job.id),
+        eq(workflowJobs.runId, job.runId),
+        eq(workflowJobs.status, "running"),
+      ),
+    )
+    .returning({ id: workflowJobs.id });
+  return Boolean(updated);
 }
 
 export async function retryWorkflowJob(job: WorkflowJob, error: unknown) {
   const message = redactSecrets(error instanceof Error ? error.message : String(error));
+  const run = await getRun(job.runId);
+  if (run && isTerminalRunStatus(run.status)) {
+    await settleWorkflowJobForTerminalRun({
+      jobId: job.id,
+      runStatus: run.status,
+      lastError: message,
+    });
+    return;
+  }
+
   const exhausted = job.attempts >= job.maxAttempts;
-  await db
+  const [updated] = await db
     .update(workflowJobs)
     .set({
       status: exhausted ? "failed" : "retrying",
@@ -673,10 +713,44 @@ export async function retryWorkflowJob(job: WorkflowJob, error: unknown) {
       updatedAt: new Date(),
       ...(exhausted ? { completedAt: new Date() } : {}),
     })
-    .where(eq(workflowJobs.id, job.id));
+    .where(
+      and(
+        eq(workflowJobs.id, job.id),
+        eq(workflowJobs.runId, job.runId),
+        eq(workflowJobs.status, "running"),
+      ),
+    )
+    .returning({ id: workflowJobs.id });
+  if (!updated) return;
   if (exhausted) {
     await failRun(job.runId, new Error(`Workflow job failed: ${job.type}: ${message}`));
   }
+}
+
+async function settleWorkflowJobForTerminalRun(input: {
+  jobId: string;
+  runStatus: TerminalRunStatus;
+  lastError?: string | undefined;
+}): Promise<WorkflowJobStatus | null> {
+  const status = workflowJobStatusForTerminalRun(input.runStatus);
+  const [updated] = await db
+    .update(workflowJobs)
+    .set({
+      status,
+      lockedBy: null,
+      lockedUntil: null,
+      completedAt: new Date(),
+      updatedAt: new Date(),
+      ...(input.lastError ? { lastError: input.lastError } : {}),
+    })
+    .where(
+      and(
+        eq(workflowJobs.id, input.jobId),
+        inArray(workflowJobs.status, ["queued", "retrying", "running"]),
+      ),
+    )
+    .returning({ status: workflowJobs.status });
+  return (updated?.status as WorkflowJobStatus | undefined) ?? null;
 }
 
 export async function recoverExpiredWorkflowJobs(now = new Date()) {

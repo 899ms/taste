@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const CANONICAL_HOST = "taste.jaytel.com";
-const AUTOMATION_PATHS = new Set(["/api/jobs/drain", "/api/cron/cleanup"]);
+const VERCEL_HOST_ALLOWED_PATHS = new Set(["/api/jobs/drain", "/api/cron/cleanup"]);
 
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.toLowerCase();
@@ -10,7 +10,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (host.endsWith(".vercel.app") && AUTOMATION_PATHS.has(request.nextUrl.pathname)) {
+  if (host.endsWith(".vercel.app") && VERCEL_HOST_ALLOWED_PATHS.has(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

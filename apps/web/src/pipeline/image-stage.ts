@@ -30,14 +30,12 @@ import {
   withFrontmatter,
 } from "./utils";
 
-const analyzeConcurrency = Number(process.env.ANALYZE_IMAGE_CONCURRENCY ?? "8");
-const synthesizeConcurrency = Number(process.env.SYNTHESIZE_NOTE_CONCURRENCY ?? "8");
-
 export async function processImageStage(runId: string, activeImages: ReferenceImage[]) {
-  const synthLimiter = new AdaptiveLimiter(synthesizeConcurrency);
+  const config = env();
+  const synthLimiter = new AdaptiveLimiter(config.SYNTHESIZE_NOTE_CONCURRENCY);
   const synthesisJobs: Promise<void>[] = [];
 
-  await mapConcurrent(activeImages, analyzeConcurrency, async (image) => {
+  await mapConcurrent(activeImages, config.ANALYZE_IMAGE_CONCURRENCY, async (image) => {
     if (!image.imageId) return;
     await throwIfRunCanceled(runId);
     await analyzeOneImage(runId, image.imageId);

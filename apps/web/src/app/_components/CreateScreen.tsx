@@ -216,7 +216,7 @@ export function CreateScreen({ credentials, onCreated }: CreateScreenProps) {
       <section className="card card--lift">
         <h1 className="card__title">Turn reference images into a taste skill.</h1>
         <p className="card__sub">
-          Drop in a corpus, then the pipeline will produce a single reusable SKILL.md.
+          Drop in images, then the pipeline will produce a single reusable SKILL.md.
         </p>
 
         <div className="card__section">

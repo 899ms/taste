@@ -104,8 +104,7 @@ export async function drainWorkflow(input: {
     await mapConcurrent(jobs, concurrency, async (job) => {
       try {
         await executeWorkflowJob(job);
-        await completeWorkflowJob(job.id);
-        completed += 1;
+        if (await completeWorkflowJob(job)) completed += 1;
       } catch (error) {
         await retryWorkflowJob(job, error);
         failed += 1;
