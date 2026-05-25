@@ -1,6 +1,8 @@
 import {
   buildSkillFrontmatter,
   DEFAULT_MAX_OUTPUT_TOKENS,
+  DEFAULT_SKILL_DESCRIPTION,
+  normalizeSkillDescription,
   normalizeSkillName,
 } from "./config";
 import {
@@ -94,13 +96,46 @@ export async function generateSkill(input: {
     maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS.skill,
     abortSignal: input.abortSignal,
   });
-  const body = result.text.trim();
+  const parsed = parseSkillGenerationOutput(result.text);
   return {
     ...result,
-    text: `${buildSkillFrontmatter(skillName)}${stripFrontmatter(body)}`,
+    text: `${buildSkillFrontmatter({
+      skillName,
+      description: parsed.description,
+    })}${parsed.body}`,
+  };
+}
+
+export function parseSkillGenerationOutput(markdown: string): {
+  description: string;
+  body: string;
+  usedFallbackDescription: boolean;
+} {
+  const text = stripFrontmatter(markdown.trim());
+  const description = normalizeSkillDescription(extractTaggedBlock(text, "skill-description"));
+  const bodyBlock = extractTaggedBlock(text, "skill-body");
+  const bodySource = bodyBlock ?? removeTaggedBlock(text, "skill-description");
+  const body = stripFrontmatter(bodySource)
+    .replace(/^<skill-body>\s*/i, "")
+    .replace(/\s*<\/skill-body>\s*$/i, "")
+    .trim();
+
+  return {
+    description: description ?? DEFAULT_SKILL_DESCRIPTION,
+    body,
+    usedFallbackDescription: description === null,
   };
 }
 
 function stripFrontmatter(markdown: string): string {
   return markdown.replace(/^---\n[\s\S]*?\n---\n*/, "").trim();
+}
+
+function extractTaggedBlock(markdown: string, tag: string): string | null {
+  const match = markdown.match(new RegExp(`<${tag}>\\s*([\\s\\S]*?)\\s*</${tag}>`, "i"));
+  return match?.[1]?.trim() ?? null;
+}
+
+function removeTaggedBlock(markdown: string, tag: string): string {
+  return markdown.replace(new RegExp(`<${tag}>[\\s\\S]*?</${tag}>`, "gi"), "").trim();
 }

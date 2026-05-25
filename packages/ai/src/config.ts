@@ -16,16 +16,29 @@ export const DEFAULT_MAX_OUTPUT_TOKENS = {
 } as const;
 
 export const DEFAULT_SKILL_NAME = "taste";
-const SKILL_DESCRIPTION = "Concrete UI visual rule set for generating and reviewing restrained neutral interfaces. Use for tasks that need exact style constraints: plain sans-serif typography, pale neutral canvases, rounded surfaces, soft shadows, minimal borders, low-saturation color, sparse density, content-neutral placeholders, and anti-collapse guardrails.";
+export const DEFAULT_SKILL_DESCRIPTION =
+  "Concrete visual taste rules generated from reference images.";
 
 export const SKILL_FRONTMATTER = buildSkillFrontmatter();
 
-export function buildSkillFrontmatter(skillName?: string | null): string {
-  const name = normalizeSkillName(skillName);
+export function buildSkillFrontmatter(
+  input?:
+    | string
+    | null
+    | {
+        skillName?: string | null | undefined;
+        description?: string | null | undefined;
+      },
+): string {
+  const name = normalizeSkillName(typeof input === "string" || input === null ? input : input?.skillName);
+  const description =
+    typeof input === "object" && input !== null
+      ? (normalizeSkillDescription(input.description) ?? DEFAULT_SKILL_DESCRIPTION)
+      : DEFAULT_SKILL_DESCRIPTION;
   return [
     "---",
     `name: ${yamlScalar(name)}`,
-    `description: ${yamlScalar(SKILL_DESCRIPTION)}`,
+    `description: ${yamlScalar(description)}`,
     "---",
     "",
   ].join("\n");
@@ -36,6 +49,31 @@ export function normalizeSkillName(skillName?: string | null): string {
   return normalized || DEFAULT_SKILL_NAME;
 }
 
+export function normalizeSkillDescription(description?: string | null): string | null {
+  let normalized = description
+    ?.replace(/^description\s*:\s*/i, "")
+    .replace(/\r?\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return null;
+
+  normalized = stripMatchingQuotes(normalized);
+  if (!normalized || normalized.includes("---") || /<[^>]+>/.test(normalized)) return null;
+  if (normalized.length > 240) {
+    normalized = normalized.slice(0, 240).replace(/\s+\S*$/, "").trim();
+  }
+  return normalized || null;
+}
+
 function yamlScalar(value: string): string {
   return JSON.stringify(value);
+}
+
+function stripMatchingQuotes(value: string): string {
+  const first = value.at(0);
+  const last = value.at(-1);
+  if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+    return value.slice(1, -1).trim();
+  }
+  return value;
 }
